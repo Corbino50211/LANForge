@@ -258,12 +258,22 @@ func (c *Controller) routes() http.Handler {
 		c.mu.Lock()
 		if p := c.peers[id]; p != nil {
 			p.conn.Close()
+			delete(c.peers, id)
 		}
 		c.mu.Unlock()
 		if e := c.store.del("nodeToken", id); e != nil {
 			apiError(w, e)
 			return
 		}
+		// Forget the computer and its servers here; game files stay on that computer.
+		var servers []Server
+		c.store.list("servers", &servers)
+		for _, s := range servers {
+			if s.NodeID == id {
+				c.store.del("servers", s.ID)
+			}
+		}
+		c.store.del("nodes", id)
 		jsonReply(w, 200, map[string]bool{"ok": true})
 	})
 	m.HandleFunc("GET /api/agent/connect", c.connect)
@@ -477,8 +487,11 @@ func (c *Controller) connect(w http.ResponseWriter, r *http.Request) {
 				if msg.Playit != nil {
 					p.playit = *msg.Playit
 				}
+				current := c.peers[id] == p // false once the computer was removed
 				c.mu.Unlock()
-				c.store.put("nodes", id, *msg.Node)
+				if current {
+					c.store.put("nodes", id, *msg.Node)
+				}
 			}
 		case "result":
 			c.mu.Lock()

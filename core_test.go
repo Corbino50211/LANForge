@@ -270,6 +270,18 @@ func TestHostReconnectAndCommands(t *testing.T) {
 	if e == nil || !strings.Contains(e.Error(), "not installed") {
 		t.Fatal(e)
 	}
+	if code, _ := reqJSON(t, client, "POST", s.URL+"/api/nodes/"+cfg.AgentID+"/revoke", map[string]any{}); code != 200 {
+		t.Fatal("revoke failed", code)
+	}
+	// The host keeps retrying with its revoked token; it must stay gone.
+	time.Sleep(3 * time.Second)
+	var n Node
+	c.mu.Lock()
+	p := c.peers[cfg.AgentID]
+	c.mu.Unlock()
+	if p != nil || c.store.get("nodes", cfg.AgentID, &n) == nil {
+		t.Fatal("removed computer came back")
+	}
 }
 func waitFor(t *testing.T, timeout time.Duration, pred func() bool) {
 	t.Helper()
