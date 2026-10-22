@@ -532,10 +532,49 @@ func mergeINI(path string, updates map[string]string, format string) error {
 	}
 	return atomicWrite(path, []byte(out.String()), 0600)
 }
+
+// stripJSONComments removes // and /* */ comments outside strings.
+func stripJSONComments(b []byte) []byte {
+	out := make([]byte, 0, len(b))
+	inString := false
+	for i := 0; i < len(b); i++ {
+		c := b[i]
+		switch {
+		case inString:
+			out = append(out, c)
+			if c == '\\' && i+1 < len(b) {
+				i++
+				out = append(out, b[i])
+			} else if c == '"' {
+				inString = false
+			}
+		case c == '"':
+			inString = true
+			out = append(out, c)
+		case c == '/' && i+1 < len(b) && b[i+1] == '/':
+			for i < len(b) && b[i] != '\n' {
+				i++
+			}
+			if i < len(b) {
+				out = append(out, '\n')
+			}
+		case c == '/' && i+1 < len(b) && b[i+1] == '*':
+			i += 2
+			for i+1 < len(b) && !(b[i] == '*' && b[i+1] == '/') {
+				i++
+			}
+			i++
+		default:
+			out = append(out, c)
+		}
+	}
+	return out
+}
 func mergeJSON(path string, updates map[string]string) error {
 	root := map[string]any{}
 	if b, e := os.ReadFile(path); e == nil {
-		if e = json.Unmarshal(b, &root); e != nil {
+		// Game configs are often JSONC (comments, trailing commas); those are dropped on rewrite.
+		if e = json.Unmarshal(trailingCommaRE.ReplaceAll(stripJSONComments(b), []byte("$1")), &root); e != nil {
 			return fmt.Errorf("preserving malformed JSON %s: %w", filepath.Base(path), e)
 		}
 	}

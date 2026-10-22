@@ -31,6 +31,7 @@ type Catalog struct {
 }
 
 var includeRE = regexp.MustCompile(`(?i)^@includejson\[([^\]]+)\]$`)
+
 // Vanilla defaults minus the keys LANForge manages (server-port, max-players, level-name).
 const minecraftProperties = `motd=A LANForge Minecraft server
 gamemode=survival
@@ -80,7 +81,7 @@ initial-enabled-packs=vanilla
 initial-disabled-packs=
 `
 
-var trailingCommaRE =regexp.MustCompile(`,(\s*[}\]])`)
+var trailingCommaRE = regexp.MustCompile(`,(\s*[}\]])`)
 var variableRE = regexp.MustCompile(`\{\{([^{}]+)\}\}`)
 
 func parseKVP(b []byte) map[string]string {

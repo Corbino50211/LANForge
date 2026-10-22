@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-const Version = "0.2.5"
+const Version = "0.2.6"
 
 type Config struct {
 	Role        string `json:"role"`
@@ -120,6 +120,7 @@ type Node struct {
 	LastSeen  time.Time `json:"lastSeen"`
 	Stats     Stats     `json:"stats"`
 	SteamUser string    `json:"steamUser,omitempty"`
+	Version   string    `json:"version,omitempty"`
 }
 type Runtime struct {
 	ID      string    `json:"id"`

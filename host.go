@@ -87,7 +87,7 @@ func (h *Host) heartbeat() Wire {
 		host = h.cfg.Name
 	}
 	p := h.playit.snapshot()
-	return Wire{Type: "heartbeat", Node: &Node{ID: h.cfg.AgentID, Name: host, OS: runtime.GOOS, Arch: runtime.GOARCH, Stats: stats, SteamUser: steamUser(h)}, Servers: states, Playit: &p}
+	return Wire{Type: "heartbeat", Node: &Node{ID: h.cfg.AgentID, Name: host, OS: runtime.GOOS, Arch: runtime.GOARCH, Stats: stats, SteamUser: steamUser(h), Version: Version}, Servers: states, Playit: &p}
 }
 func (h *Host) metrics(ctx context.Context) {
 	tick := time.NewTicker(3 * time.Second)
@@ -125,6 +125,14 @@ func (h *Host) handle(cmd Command) (any, error) {
 		return map[string]bool{"ok": true}, h.playit.start()
 	case "playit.stop":
 		return map[string]bool{"ok": true}, h.playit.stop()
+	case "update":
+		ready, e := installUpdate()
+		if e != nil || !ready {
+			return map[string]bool{"updated": false}, e
+		}
+		// Reply first; the restart drops the connection.
+		go func() { time.Sleep(2 * time.Second); restartWhenIdle(context.Background(), h.idle) }()
+		return map[string]bool{"updated": true}, nil
 	case "playit.reset":
 		return h.playit.reset()
 	case "steam.login":

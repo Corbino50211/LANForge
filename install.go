@@ -398,6 +398,7 @@ func steamInstall(h *Host, m *Managed, appid, dest, branch, platform string, log
 	}
 	return nil
 }
+
 // minecraftWhitelist builds whitelist.json entries. Online servers need the Mojang UUID; offline servers use the name-derived one.
 func minecraftWhitelist(names []string, online bool) ([]map[string]string, error) {
 	list := []map[string]string{}

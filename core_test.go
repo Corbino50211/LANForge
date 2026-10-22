@@ -521,3 +521,15 @@ func TestMinecraftPropertiesAndWhitelist(t *testing.T) {
 		t.Fatal("accepted invalid name")
 	}
 }
+
+func TestMergeJSONWithComments(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "settings.json")
+	os.WriteFile(p, []byte("{\n  // server name\n  \"name\": \"a // not a comment\", /* block */\n  \"port\": 1,\n  \"url\": \"http://x\",\n}\n"), 0600)
+	if e := mergeJSON(p, map[string]string{"port": "5557"}); e != nil {
+		t.Fatal(e)
+	}
+	var got map[string]any
+	if e := readJSON(p, &got); e != nil || got["port"] != float64(5557) || got["name"] != "a // not a comment" || got["url"] != "http://x" {
+		t.Fatalf("%v %v", got, e)
+	}
+}

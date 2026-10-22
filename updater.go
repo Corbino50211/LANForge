@@ -153,21 +153,25 @@ func updateLoop(ctx context.Context, idle func() bool) {
 			log.Printf("Update check: %s", e)
 			continue
 		}
-		if !ready {
-			continue
+		if ready {
+			restartWhenIdle(ctx, idle)
+			return
 		}
-		for !idle() {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(time.Minute):
-			}
+	}
+}
+
+// restartWhenIdle shuts the app down for relaunch once nothing would be interrupted.
+func restartWhenIdle(ctx context.Context, idle func() bool) {
+	for !idle() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Minute):
 		}
-		restartRequested.Store(true)
-		if appCancel != nil {
-			appCancel()
-		}
-		return
+	}
+	restartRequested.Store(true)
+	if appCancel != nil {
+		appCancel()
 	}
 }
 

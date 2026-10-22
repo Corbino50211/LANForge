@@ -275,7 +275,11 @@ func (c *Controller) routes() http.Handler {
 			apiError(w, errors.New("unknown action"))
 			return
 		}
-		res, e := c.call(r.Context(), r.PathValue("id"), Command{Action: "playit." + act})
+		min := ""
+		if act == "reset" {
+			min = "0.2.4"
+		}
+		res, e := c.hostCall(r.Context(), r.PathValue("id"), min, Command{Action: "playit." + act})
 		if e != nil {
 			apiError(w, e)
 			return
@@ -290,7 +294,15 @@ func (c *Controller) routes() http.Handler {
 		}
 		args := map[string]string{}
 		json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&args)
-		res, e := c.call(r.Context(), r.PathValue("id"), Command{Action: "steam." + act, Args: args})
+		res, e := c.hostCall(r.Context(), r.PathValue("id"), "0.2.1", Command{Action: "steam." + act, Args: args})
+		if e != nil {
+			apiError(w, e)
+			return
+		}
+		jsonReply(w, 200, res)
+	})
+	m.HandleFunc("POST /api/nodes/{id}/update", func(w http.ResponseWriter, r *http.Request) {
+		res, e := c.hostCall(r.Context(), r.PathValue("id"), "0.2.6", Command{Action: "update"})
 		if e != nil {
 			apiError(w, e)
 			return
@@ -849,3 +861,23 @@ func (c *Controller) serve(ctx context.Context) error {
 
 var _ = runtime.GOOS
 var _ = os.ErrNotExist
+
+// hostCall runs a host-level command, explaining when the host is too old for it.
+func (c *Controller) hostCall(ctx context.Context, node, min string, cmd Command) (any, error) {
+	c.mu.Lock()
+	var v, name string
+	if p := c.peers[node]; p != nil {
+		v, name = p.node.Version, p.node.Name
+	}
+	c.mu.Unlock()
+	old := fmt.Errorf("%s runs an older LANForge that can't do this yet. On that computer, close LANForge and open it again; it updates itself within a minute", name)
+	if v != "" && newerVersion(min, v) {
+		return nil, old
+	}
+	res, e := c.call(ctx, node, cmd)
+	// Hosts before 0.2.6 don't report a version and treat unknown actions as server commands.
+	if e != nil && (e.Error() == "invalid server ID" || e.Error() == "unknown host action") {
+		return nil, old
+	}
+	return res, e
+}

@@ -287,6 +287,7 @@ func (p *Playit) stop() error {
 	p.update("stopped", "Playit agent stopped")
 	return nil
 }
+
 // reset stops the agent and forgets the linked account so Connect Playit claims afresh.
 func (p *Playit) reset() (any, error) {
 	if e := p.stop(); e != nil {
