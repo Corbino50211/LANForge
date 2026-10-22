@@ -125,6 +125,8 @@ func (h *Host) handle(cmd Command) (any, error) {
 		return map[string]bool{"ok": true}, h.playit.start()
 	case "playit.stop":
 		return map[string]bool{"ok": true}, h.playit.stop()
+	case "playit.reset":
+		return h.playit.reset()
 	case "steam.login":
 		return steamLogin(h, cmd.Args["username"], cmd.Args["password"], cmd.Args["code"])
 	case "steam.logout":

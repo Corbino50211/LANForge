@@ -287,6 +287,21 @@ func (p *Playit) stop() error {
 	p.update("stopped", "Playit agent stopped")
 	return nil
 }
+// reset stops the agent and forgets the linked account so Connect Playit claims afresh.
+func (p *Playit) reset() (any, error) {
+	if e := p.stop(); e != nil {
+		return nil, e
+	}
+	if e := os.Remove(filepath.Join(p.dir, "secret")); e != nil && !os.IsNotExist(e) {
+		return nil, e
+	}
+	p.mu.Lock()
+	p.secret = ""
+	p.claiming = false
+	p.state = PlayitState{State: "stopped", Message: "Playit disconnected. Connect Playit to sign in again."}
+	p.mu.Unlock()
+	return p.snapshot(), nil
+}
 func (p *Playit) refresh() (any, error) {
 	p.mu.Lock()
 	key := p.secret

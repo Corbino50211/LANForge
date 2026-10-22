@@ -271,7 +271,7 @@ func (c *Controller) routes() http.Handler {
 	m.HandleFunc("POST /api/servers/{id}/{action}", c.serverAction)
 	m.HandleFunc("POST /api/nodes/{id}/playit/{action}", func(w http.ResponseWriter, r *http.Request) {
 		act := r.PathValue("action")
-		if act != "connect" && act != "refresh" && act != "start" && act != "stop" {
+		if act != "connect" && act != "refresh" && act != "start" && act != "stop" && act != "reset" {
 			apiError(w, errors.New("unknown action"))
 			return
 		}
