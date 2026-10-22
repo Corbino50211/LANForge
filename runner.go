@@ -116,6 +116,9 @@ func (m *Managed) followLogs() {
 		time.Sleep(time.Second)
 		f, e := os.Open(path)
 		if e != nil {
+			if _, e := os.Stat(m.root); os.IsNotExist(e) {
+				return // server deleted
+			}
 			continue
 		}
 		st, e := f.Stat()

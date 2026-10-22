@@ -786,6 +786,20 @@ func (c *Controller) serverAction(w http.ResponseWriter, r *http.Request) {
 		jsonReply(w, 200, res)
 		return
 	}
+	if act == "delete" {
+		_, e := c.hostCall(r.Context(), s.NodeID, "0.2.8", Command{Action: "delete", ServerID: s.ID})
+		// A server that was never installed on its host has no files to delete.
+		if e != nil && !strings.Contains(e.Error(), "not installed") {
+			apiError(w, e)
+			return
+		}
+		if e = c.store.del("servers", s.ID); e != nil {
+			apiError(w, e)
+			return
+		}
+		jsonReply(w, 200, map[string]string{"message": s.Name + " deleted"})
+		return
+	}
 	allowed := map[string]bool{"install": true, "start": true, "stop": true, "restart": true, "console": true, "files": true, "read": true, "write": true, "upload": true, "backups": true, "backup": true, "restore": true, "tunnel": true}
 	if !allowed[act] {
 		apiError(w, errors.New("unknown server action"))

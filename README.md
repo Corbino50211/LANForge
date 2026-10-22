@@ -1,4 +1,4 @@
-# LANForge 0.2.7 — local hosting preview
+# LANForge 0.2.8 — local hosting preview
 
 A local controller and host application for Windows and Linux. Run the controller on your main PC and pair your laptops. The same executable runs either role. The controller also hosts games itself.
 

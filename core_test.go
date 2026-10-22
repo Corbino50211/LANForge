@@ -245,7 +245,8 @@ func TestHostReconnectAndCommands(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go runHost(ctx, t.TempDir(), cfg)
+	hostDir := t.TempDir()
+	go runHost(ctx, hostDir, cfg)
 	waitFor(t, 15*time.Second, func() bool {
 		c.mu.Lock()
 		defer c.mu.Unlock()
@@ -269,6 +270,18 @@ func TestHostReconnectAndCommands(t *testing.T) {
 	_, e = c.call(ctx, cfg.AgentID, Command{Action: "files", ServerID: "missing"})
 	if e == nil || !strings.Contains(e.Error(), "not installed") {
 		t.Fatal(e)
+	}
+	// Deleting a server removes its folder on the host and its dashboard record.
+	gone := filepath.Join(hostDir, "servers", "deleteme")
+	os.MkdirAll(filepath.Join(gone, "game"), 0700)
+	os.WriteFile(filepath.Join(gone, "game", "world.dat"), []byte("x"), 0600)
+	c.store.put("servers", "deleteme", Server{ID: "deleteme", NodeID: cfg.AgentID, Name: "Doomed"})
+	if code, body := reqJSON(t, client, "POST", s.URL+"/api/servers/deleteme/delete", map[string]any{}); code != 200 {
+		t.Fatal("delete failed", code, body)
+	}
+	var sv Server
+	if _, e := os.Stat(gone); !os.IsNotExist(e) || c.store.get("servers", "deleteme", &sv) == nil {
+		t.Fatal("server not deleted", e)
 	}
 	if code, _ := reqJSON(t, client, "POST", s.URL+"/api/nodes/"+cfg.AgentID+"/revoke", map[string]any{}); code != 200 {
 		t.Fatal("revoke failed", code)

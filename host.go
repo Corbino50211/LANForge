@@ -203,6 +203,29 @@ func (h *Host) handle(cmd Command) (any, error) {
 		}()
 		return map[string]string{"message": "Installation queued"}, nil
 	}
+	if cmd.Action == "delete" {
+		if m != nil {
+			if !m.op.TryLock() {
+				return nil, errors.New("server is busy; wait for it to finish, then delete it")
+			}
+			defer m.op.Unlock()
+			if m.snapshot().PID != 0 {
+				return nil, errors.New("stop the server before deleting it")
+			}
+			h.mu.Lock()
+			delete(h.servers, id)
+			h.mu.Unlock()
+		}
+		// Retry: on Windows the log follower or antivirus can hold a file for a moment.
+		var e error
+		for i := 0; i < 5; i++ {
+			if e = os.RemoveAll(filepath.Join(h.dir, "servers", id)); e == nil {
+				break
+			}
+			time.Sleep(time.Second)
+		}
+		return map[string]bool{"ok": true}, e
+	}
 	if m == nil {
 		return nil, errors.New("server is not installed on this computer; choose Install / repair")
 	}
