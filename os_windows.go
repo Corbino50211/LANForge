@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"sync"
 	"syscall"
+	"time"
 )
 
 func replaceFile(from, to string) error {
@@ -42,7 +43,8 @@ func stopProcess(c *exec.Cmd, force bool) error {
 		}
 		defer freeConsole.Call()
 		setConsoleHandler.Call(ignoreControl, 1)
-		defer setConsoleHandler.Call(ignoreControl, 0)
+		// The event arrives asynchronously; keep ignoring it a moment so it can't reach our own handler.
+		defer func() { time.Sleep(time.Second); setConsoleHandler.Call(ignoreControl, 0) }()
 		return windows.GenerateConsoleCtrlEvent(windows.CTRL_BREAK_EVENT, 0)
 	}
 	k := exec.Command("taskkill", "/PID", fmtPID(c.Process.Pid), "/T", "/F")

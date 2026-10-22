@@ -1,4 +1,4 @@
-# LANForge 0.2.8 — local hosting preview
+# LANForge 0.3.0 — local hosting preview
 
 A local controller and host application for Windows and Linux. Run the controller on your main PC and pair your laptops. The same executable runs either role. The controller also hosts games itself.
 
@@ -34,7 +34,10 @@ DNS does not replace forwarding or bypass CGNAT. Other DNS providers, IPv6, and 
 - Password-protected local HTTPS dashboard, SQLite storage, certificate-pinned outbound host connections and expiring single-use pairing codes.
 - Real process installation/start/stop/restart, console input and output, CPU/RAM/disk readings, automatic start and limited crash recovery.
 - Text file editing and uploads, stopped-server backups and staged restore with the previous game directory retained.
-- Official vanilla Minecraft Java, Terraria and Valheim installers. Java runtimes install privately beside each Minecraft server.
+- Official Minecraft Java, Terraria and Valheim installers. Java runtimes install privately beside each Minecraft server.
+- Minecraft loaders: Vanilla, Paper, Purpur, Fabric, Quilt, Forge and NeoForge. Pick one in the wizard or in Settings, then use **Install / repair**. Paper and Purpur run Spigot/Bukkit plugins.
+- A **Mods** (or **Plugins**) tab that searches Modrinth, installs only compatible versions and pulls in required dependencies. Set **Modrinth modpack** to a modpack link or slug to install a whole pack. No API keys are needed; CurseForge is not supported.
+- **Custom app** servers for Node.js, Python, Go, Java, Bun and Deno. Code comes from a public GitHub repository, an uploaded zip (click it in Files to extract) or files you write in Files. LANForge downloads the runtime, installs dependencies (`npm install`, `pip install -r requirements.txt`, `go build`), sets `PORT` and runs the start command.
 - AMP catalog browsing and refresh from CubeCoders' public MIT-licensed repository. The bundled snapshot contains 244 upstream templates plus LANForge's Minecraft entry.
 - A generic AMP adapter covering SteamCMD, FetchURL, FetchURLFromJQ, GithubRelease, ExtractArchive, CreateDirectory/File, CopyFilePath, Executable and pre-start stages, plus INI/KVP/JSON/template configuration with AMP line formats. In the bundled snapshot 133 templates install on Windows and 100 on Linux. They are experimental and have not been tested in-game. Templates that need a Steam account login, XML configuration or git are still marked unavailable.
 - Automatic updates from GitHub Releases (see below). The pairing dialog now shows the PC's real LAN address instead of VirtualBox/Hyper-V adapters.
@@ -42,9 +45,9 @@ DNS does not replace forwarding or bypass CGNAT. Other DNS providers, IPv6, and 
 
 ## Preview limitations
 
-This is an early working implementation, not full AMP compatibility. Arbitrary AMP scripts, proprietary AMP runtime modules, XML config mapping, GitRepo installers and Windows-only builds on Linux (Wine) are marked unsupported. Catalog visibility does not mean a game can be installed. Mods, scheduled backups, game player counts, multi-user roles, automatic application updates and server deletion are not implemented. Change game ports or connection mode by creating a new server; do not overwrite existing worlds.
+This is an early working implementation, not full AMP compatibility. Arbitrary AMP scripts, proprietary AMP runtime modules, XML config mapping, GitRepo installers and Windows-only builds on Linux (Wine) are marked unsupported. Catalog visibility does not mean a game can be installed. Scheduled backups, game player counts and multi-user roles are not implemented. Change game ports or connection mode by creating a new server; do not overwrite existing worlds.
 
-Settings edits require a stopped server. Generic AMP configuration is edited in Files. File uploads are limited to 8 MiB each and text editing to 2 MiB. Backups include the game directory and need enough space for an additional copy; take backups before upgrading. Repair may update official game files.
+Settings edits require a stopped server. Generic AMP configuration is edited in Files. File uploads are limited to 2 GiB each and text editing to 2 MiB. Backups include the game directory and need enough space for an additional copy; take backups before upgrading. Repair may update official game files.
 
 The controller can restart without intentionally stopping its detached local host. Hosts reconnect after network interruption. After an entire host-agent process crashes, running game processes are recovered where their PID and creation time match; restart a recovered game to restore console input. Graceful shutdown of a recovered process is platform-dependent. Windows autostart runs at user sign-in, not as a Windows service before login. Linux user services also normally start at login; unattended boot setup is an OS administration task.
 
@@ -52,7 +55,7 @@ Playit and Cloudflare code is implemented but has not been exercised with a real
 
 ## Automatic updates
 
-LANForge checks the latest GitHub release of `Corbino50211/LANForge` (set by `UpdateRepo` in `updater.go`; the repository must be public) one minute after start and every six hours. A release tagged `vX.Y.Z` must contain `lanforge-windows-amd64.exe`, `lanforge-linux-amd64` and `SHA256SUMS.txt` (the build scripts produce all three in `dist/`). The download is verified against the checksum, swapped in, and the app restarts itself. Hosts wait until no game is running, installing or being backed up before restarting. The controller restarts right away because games run on its separate host process. Restarted processes log to `lanforge.log` in the data folder.
+LANForge checks the latest GitHub release of `Corbino50211/LANForge` (set by `UpdateRepo` in `updater.go`; the repository must be public) one minute after start and every six hours. A release tagged `vX.Y.Z` must contain `lanforge-windows-amd64.exe`, `lanforge-linux-amd64` and `SHA256SUMS.txt` (the build scripts produce all three in `dist/`). The download is verified against the checksum, swapped in, and the app restarts itself. Hosts wait until no game is running, installing or being backed up before restarting. The controller restarts right away because games run on its separate host process. **Settings → LANForge updates** checks right away and offers **Update to vX.Y.Z**; each computer card has **Update now**. Restarted processes log to `lanforge.log` in the data folder.
 
 ## Steam sign-in
 

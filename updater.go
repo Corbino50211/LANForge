@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -198,4 +199,27 @@ func relaunch(logPath string) error {
 	defer f.Close()
 	cmd.Stdout, cmd.Stderr = f, f
 	return cmd.Start()
+}
+
+var latestCache struct {
+	sync.Mutex
+	tag  string
+	when time.Time
+}
+
+// latestRelease returns the newest release tag, checking GitHub at most every 10 minutes.
+func latestRelease() (string, error) {
+	latestCache.Lock()
+	defer latestCache.Unlock()
+	if latestCache.tag != "" && time.Since(latestCache.when) < 10*time.Minute {
+		return latestCache.tag, nil
+	}
+	var rel struct {
+		Tag string `json:"tag_name"`
+	}
+	if e := fetchJSON("https://api.github.com/repos/"+UpdateRepo+"/releases/latest", &rel); e != nil {
+		return "", e
+	}
+	latestCache.tag, latestCache.when = rel.Tag, time.Now()
+	return rel.Tag, nil
 }

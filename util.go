@@ -4,12 +4,16 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"net/http"
 	"net/url"
@@ -139,7 +143,7 @@ func download(raw, dest, expected string, log func(string)) error {
 		return e
 	}
 	defer os.Remove(f.Name())
-	h := sha256.New()
+	h := hasherFor(expected)
 	last := time.Now()
 	var total int64
 	buf := make([]byte, 128*1024)
@@ -172,10 +176,23 @@ func download(raw, dest, expected string, log func(string)) error {
 	if e = f.Close(); e != nil {
 		return e
 	}
-	if expected != "" && !strings.EqualFold(strings.TrimPrefix(expected, "sha256:"), hex.EncodeToString(h.Sum(nil))) {
+	if expected != "" && !strings.EqualFold(expected[strings.LastIndex(expected, ":")+1:], hex.EncodeToString(h.Sum(nil))) {
 		return errors.New("download checksum mismatch")
 	}
 	return replaceFile(f.Name(), dest)
+}
+
+// hasherFor picks the algorithm from the hex length: md5, sha1, sha256 or sha512 (an "algo:" prefix is allowed).
+func hasherFor(expected string) hash.Hash {
+	switch len(expected[strings.LastIndex(expected, ":")+1:]) {
+	case 32:
+		return md5.New()
+	case 40:
+		return sha1.New()
+	case 128:
+		return sha512.New()
+	}
+	return sha256.New()
 }
 func extract(archive, dest string) error {
 	var total int64

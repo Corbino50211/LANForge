@@ -558,3 +558,73 @@ func TestMergeJSONWithComments(t *testing.T) {
 		t.Fatalf("%v %v", got, e)
 	}
 }
+
+func TestAppAndLoaderHelpers(t *testing.T) {
+	if w, e := splitCommand(`node "my app.js" --port 8080`); e != nil || len(w) != 4 || w[1] != "my app.js" {
+		t.Fatalf("split: %q %v", w, e)
+	}
+	if _, e := splitCommand(`python "oops`); e == nil {
+		t.Fatal("accepted unclosed quote")
+	}
+	for mc, want := range map[string]string{"1.21.4": "21.4.", "1.21": "21.0.", "1.20.2": "20.2.", "26.1": "26.1."} {
+		if got := neoForgePrefix(mc); got != want {
+			t.Fatalf("neoForgePrefix(%s)=%s", mc, got)
+		}
+	}
+	if a := minecraftArgs(Server{Settings: map[string]string{}}); strings.Join(a, " ") != "-jar server.jar nogui" {
+		t.Fatal(a)
+	}
+	// App plan: npm maps to the bundled node + npm-cli.js, PORT is passed.
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, "runtime-node", "node", "node_modules", "npm", "bin"), 0700)
+	os.WriteFile(filepath.Join(root, "runtime-node", "node", exeName("node")), []byte("x"), 0700)
+	os.WriteFile(filepath.Join(root, "runtime-node", "node", "node_modules", "npm", "bin", "npm-cli.js"), []byte("x"), 0600)
+	writeJSON(filepath.Join(root, "runtime-node.json"), "runtime-node/node/"+exeName("node"))
+	os.MkdirAll(filepath.Join(root, "game"), 0700)
+	os.WriteFile(filepath.Join(root, "game", "package.json"), []byte(`{"scripts":{"start":"node ."}}`), 0600)
+	s := Server{Settings: map[string]string{"runtime": "node"}, Ports: []Port{{Number: 3000}}}
+	p, e := appPlan(s, root)
+	if e != nil || p.Executable != "runtime-node/node/"+exeName("node") || len(p.Args) != 2 || !strings.HasSuffix(p.Args[0], "npm-cli.js") || p.Args[1] != "start" || p.Env["PORT"] != "3000" {
+		t.Fatalf("plan %+v %v", p, e)
+	}
+	s.Settings["start"] = "../escape"
+	if _, e = appPlan(s, root); e == nil {
+		t.Fatal("start command escaped the app folder")
+	}
+	// Archives with one top folder are flattened.
+	zipPath := filepath.Join(root, "src.zip")
+	zf, _ := os.Create(zipPath)
+	zw := zip.NewWriter(zf)
+	w, _ := zw.Create("project-main/app.py")
+	w.Write([]byte("print(1)"))
+	zw.Close()
+	zf.Close()
+	if e = extractFlat(zipPath, filepath.Join(root, "out")); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = os.Stat(filepath.Join(root, "out", "app.py")); e != nil {
+		t.Fatal("not flattened", e)
+	}
+	// Modpack paths cannot leave the game folder.
+	m := newManaged(root, Server{})
+	bad := &modpack{Index: mrIndex{Files: []struct {
+		Path      string            `json:"path"`
+		Hashes    map[string]string `json:"hashes"`
+		Env       map[string]string `json:"env"`
+		Downloads []string          `json:"downloads"`
+	}{{Path: "../../evil.jar", Downloads: []string{"https://example.invalid/x"}}}}}
+	if e = applyModpack(m, bad); e == nil || !strings.Contains(e.Error(), "evil") {
+		t.Fatal("unsafe modpack path accepted", e)
+	}
+	// Chunked uploads append.
+	os.WriteFile(filepath.Join(root, "installed.json"), []byte("{}"), 0600)
+	if e = m.writeFile(map[string]string{"path": "big.bin", "content": "QUJD"}, true); e != nil {
+		t.Fatal(e)
+	}
+	if e = m.writeFile(map[string]string{"path": "big.bin", "content": "REVG", "append": "true"}, true); e != nil {
+		t.Fatal(e)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, "game", "big.bin")); string(b) != "ABCDEF" {
+		t.Fatalf("append got %q", b)
+	}
+}

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"crypto/md5"
-	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -36,6 +35,10 @@ func installGame(h *Host, m *Managed) error {
 		if e := steamInstall(h, m, "896660", filepath.Join(m.root, "game"), "", "", false); e != nil {
 			return e
 		}
+	case "app":
+		if e := installApp(m); e != nil {
+			return e
+		}
 	case "amp":
 		if s.Plan == nil {
 			return errors.New("missing AMP installation plan")
@@ -55,83 +58,6 @@ func installGame(h *Host, m *Managed) error {
 		return errors.New("unknown game installer")
 	}
 	return configureGame(m)
-}
-func installMinecraft(m *Managed) error {
-	s := m.specCopy()
-	m.log("Finding the official Minecraft server release")
-	var manifest struct {
-		Latest struct {
-			Release string `json:"release"`
-		} `json:"latest"`
-		Versions []struct {
-			ID  string `json:"id"`
-			URL string `json:"url"`
-		} `json:"versions"`
-	}
-	if e := fetchJSON("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json", &manifest); e != nil {
-		return e
-	}
-	wanted := s.Settings["version"]
-	if wanted == "" || wanted == "latest" {
-		wanted = manifest.Latest.Release
-	}
-	metadataURL := ""
-	for _, v := range manifest.Versions {
-		if v.ID == wanted {
-			metadataURL = v.URL
-			break
-		}
-	}
-	if metadataURL == "" {
-		return errors.New("Minecraft version not found; use latest or an official release number")
-	}
-	var meta struct {
-		Downloads struct {
-			Server struct {
-				URL  string `json:"url"`
-				SHA1 string `json:"sha1"`
-			} `json:"server"`
-		} `json:"downloads"`
-		JavaVersion struct {
-			Major int `json:"majorVersion"`
-		} `json:"javaVersion"`
-	}
-	if e := fetchJSON(metadataURL, &meta); e != nil {
-		return e
-	}
-	if meta.Downloads.Server.URL == "" {
-		return errors.New("this Minecraft version has no dedicated server download")
-	}
-	jar := filepath.Join(m.root, "game", "server.jar")
-	if e := download(meta.Downloads.Server.URL, jar, "", m.log); e != nil {
-		return e
-	}
-	f, e := os.Open(jar)
-	if e != nil {
-		return e
-	}
-	hash := sha1.New()
-	_, e = io.Copy(hash, f)
-	f.Close()
-	if e != nil {
-		return e
-	}
-	if hex.EncodeToString(hash.Sum(nil)) != meta.Downloads.Server.SHA1 {
-		return errors.New("Minecraft server checksum mismatch")
-	}
-	major := meta.JavaVersion.Major
-	if major == 0 {
-		major = 17
-	}
-	java, e := installJava(m, major)
-	if e != nil {
-		return e
-	}
-	m.mu.Lock()
-	m.spec.Settings["installedVersion"] = wanted
-	m.spec.Plan = &Plan{Engine: "minecraft", Executable: java, WorkDir: "game", Stop: "stop"}
-	m.mu.Unlock()
-	return nil
 }
 func installJava(m *Managed, major int) (string, error) {
 	marker := filepath.Join(m.root, fmt.Sprintf("java-%d.json", major))
@@ -438,7 +364,7 @@ func configureGame(m *Managed) error {
 		if s.Plan == nil {
 			return nil
 		}
-		s.Plan.Args = []string{"-Xms512M", "-Xmx" + s.Settings["memory"] + "M", "-jar", "server.jar", "nogui"}
+		s.Plan.Args = append([]string{"-Xms512M", "-Xmx" + s.Settings["memory"] + "M"}, minecraftArgs(s)...)
 		if s.Settings["eula"] != "true" {
 			return errors.New("Minecraft EULA has not been accepted")
 		}
@@ -467,6 +393,12 @@ func configureGame(m *Managed) error {
 				return e
 			}
 		}
+	case "app":
+		p, e := appPlan(s, m.root)
+		if e != nil {
+			return e
+		}
+		s.Plan = p
 	case "terraria":
 		os.MkdirAll(filepath.Join(game, "worlds"), 0700)
 		if e := mergeProperties(filepath.Join(game, "serverconfig.txt"), map[string]string{"world": "worlds/" + s.Settings["world"] + ".wld", "worldname": s.Settings["world"], "autocreate": s.Settings["size"], "port": port, "maxplayers": s.Settings["maxPlayers"], "password": s.Settings["password"], "upnp": "0", "secure": "1"}); e != nil {

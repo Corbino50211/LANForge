@@ -243,6 +243,16 @@ func (h *Host) handle(cmd Command) (any, error) {
 		return map[string]bool{"ok": true}, m.console(cmd.Args["command"])
 	case "files":
 		return m.files(cmd.Args["path"])
+	case "extract":
+		return map[string]bool{"ok": true}, m.extractFile(cmd.Args["path"])
+	case "mods.search":
+		return modsSearch(m, cmd.Args["q"])
+	case "mods.install":
+		return modsInstall(m, cmd.Args["project"])
+	case "mods.list":
+		return modsList(m)
+	case "mods.remove":
+		return modsRemove(m, cmd.Args["file"])
 	case "read":
 		return m.readFile(cmd.Args["path"])
 	case "write", "upload":
@@ -270,8 +280,11 @@ func (h *Host) handle(cmd Command) (any, error) {
 		// The installed executable/runtime paths belong to this host, not the controller's draft plan.
 		incoming := clone(*cmd.Server)
 		incoming.Plan = old.Plan
-		if v := old.Settings["installedVersion"]; v != "" {
-			incoming.Settings["installedVersion"] = v
+		// Install results live only on the host.
+		for _, k := range []string{"installedVersion", "installedLoader", "launchArgs"} {
+			if v := old.Settings[k]; v != "" {
+				incoming.Settings[k] = v
+			}
 		}
 		m.mu.Lock()
 		m.spec = incoming

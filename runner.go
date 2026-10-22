@@ -468,7 +468,22 @@ func (m *Managed) writeFile(args map[string]string, binary bool) error {
 		}
 	}
 	if len(b) > 8<<20 {
-		return errors.New("uploads are limited to 8 MB; copy larger files directly on the host")
+		return errors.New("uploads are limited to 8 MB per chunk")
+	}
+	if args["append"] == "true" {
+		// Later chunks of a large upload; the browser sends 4 MB at a time.
+		if st, e := os.Stat(p); e == nil && st.Size()+int64(len(b)) > 2<<30 {
+			return errors.New("uploads are limited to 2 GB")
+		}
+		f, e := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0600)
+		if e != nil {
+			return e
+		}
+		_, e = f.Write(b)
+		if ce := f.Close(); e == nil {
+			e = ce
+		}
+		return e
 	}
 	if old, e := os.ReadFile(p); e == nil {
 		if e = atomicWrite(p+".lanforge-backup", old, 0600); e != nil {
@@ -478,3 +493,26 @@ func (m *Managed) writeFile(args map[string]string, binary bool) error {
 	return atomicWrite(p, b, 0600)
 }
 func fmtPID(pid int) string { return strconv.Itoa(pid) }
+
+// extractFile unpacks an uploaded .zip or .tar.gz next to itself, then deletes the archive.
+func (m *Managed) extractFile(rel string) error {
+	if !m.op.TryLock() {
+		return errors.New("server is busy")
+	}
+	defer m.op.Unlock()
+	if m.snapshot().PID != 0 {
+		return errors.New("stop the server before changing its files")
+	}
+	p, e := inside(filepath.Join(m.root, "game"), rel)
+	if e != nil {
+		return e
+	}
+	lower := strings.ToLower(p)
+	if !strings.HasSuffix(lower, ".zip") && !strings.HasSuffix(lower, ".tar.gz") && !strings.HasSuffix(lower, ".tgz") {
+		return errors.New("only .zip and .tar.gz files can be extracted")
+	}
+	if e = extractFlat(p, filepath.Dir(p)); e != nil {
+		return e
+	}
+	return os.Remove(p)
+}

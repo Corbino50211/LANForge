@@ -311,6 +311,36 @@ func (c *Controller) routes() http.Handler {
 		}
 		jsonReply(w, 200, res)
 	})
+	m.HandleFunc("GET /api/update", func(w http.ResponseWriter, r *http.Request) {
+		latest, e := latestRelease()
+		if e != nil {
+			apiError(w, fmt.Errorf("could not check for updates: %w", e))
+			return
+		}
+		jsonReply(w, 200, map[string]any{"current": Version, "latest": strings.TrimPrefix(latest, "v"), "available": newerVersion(latest, Version)})
+	})
+	m.HandleFunc("POST /api/update", func(w http.ResponseWriter, r *http.Request) {
+		ready, e := installUpdate()
+		if e != nil {
+			apiError(w, e)
+			return
+		}
+		if !ready {
+			jsonReply(w, 200, map[string]any{"updated": false, "message": "LANForge is up to date"})
+			return
+		}
+		go func() {
+			// The local host shares this executable; it restarts once no game is running.
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			c.call(ctx, "local", Command{Action: "update"})
+			cancel()
+			restartRequested.Store(true)
+			if appCancel != nil {
+				appCancel()
+			}
+		}()
+		jsonReply(w, 200, map[string]any{"updated": true, "message": "Updating LANForge. The dashboard restarts in a few seconds."})
+	})
 	m.HandleFunc("POST /api/nodes/{id}/update", func(w http.ResponseWriter, r *http.Request) {
 		res, e := c.hostCall(r.Context(), r.PathValue("id"), "0.2.6", Command{Action: "update"})
 		if e != nil {
@@ -800,7 +830,7 @@ func (c *Controller) serverAction(w http.ResponseWriter, r *http.Request) {
 		jsonReply(w, 200, map[string]string{"message": s.Name + " deleted"})
 		return
 	}
-	allowed := map[string]bool{"install": true, "start": true, "stop": true, "restart": true, "console": true, "files": true, "read": true, "write": true, "upload": true, "backups": true, "backup": true, "restore": true, "tunnel": true}
+	allowed := map[string]bool{"install": true, "start": true, "stop": true, "restart": true, "console": true, "files": true, "read": true, "write": true, "upload": true, "backups": true, "backup": true, "restore": true, "tunnel": true, "extract": true, "mods.search": true, "mods.install": true, "mods.list": true, "mods.remove": true}
 	if !allowed[act] {
 		apiError(w, errors.New("unknown server action"))
 		return
@@ -809,7 +839,11 @@ func (c *Controller) serverAction(w http.ResponseWriter, r *http.Request) {
 	if act == "install" {
 		cmd.Server = &s
 	}
-	res, e := c.call(r.Context(), s.NodeID, cmd)
+	min := ""
+	if act == "extract" || strings.HasPrefix(act, "mods.") {
+		min = "0.3.0"
+	}
+	res, e := c.hostCall(r.Context(), s.NodeID, min, cmd)
 	if e != nil {
 		apiError(w, e)
 		return
