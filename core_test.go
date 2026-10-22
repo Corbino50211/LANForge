@@ -138,6 +138,15 @@ func TestCatalogAndCompile(t *testing.T) {
 		}
 	}
 	t.Logf("Catalog: %d templates, %d declarative Linux plans compile", len(all), supported)
+	// AMP config templates live relative to the instance folder.
+	g, _ := c.get("garrys-mod")
+	s := Server{Settings: map[string]string{}, Ports: g.Ports}
+	for _, f := range g.Fields {
+		s.Settings[f.ID] = f.Default
+	}
+	if p, e := compilePlan(g, s, "windows"); e != nil || p.Configs[0].Template != "game/garrysmod/AMP_server.cfg" {
+		t.Fatal(p, e)
+	}
 	if supported < 5 {
 		t.Fatal("generic template compatibility regressed")
 	}

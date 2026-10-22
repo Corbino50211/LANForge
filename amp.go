@@ -334,7 +334,8 @@ func compilePlan(t Template, s Server, platform string) (*Plan, error) {
 			if tpl == "" {
 				return nil, errors.New("template configuration has no template file")
 			}
-			if cfg.Template, e = stagePath(strings.TrimPrefix(base, "game/") + "/" + norm(tpl)); e != nil {
+			// AMP resolves template files from the instance folder, e.g. garrysmod/AMP_server.cfg.
+			if cfg.Template, e = stagePath(norm(tpl)); e != nil {
 				return nil, e
 			}
 			// Templates reference fields by name, e.g. {{lobby_name}}.
