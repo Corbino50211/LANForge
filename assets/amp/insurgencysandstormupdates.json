@@ -1,0 +1,46 @@
+[
+    {
+        "UpdateStageName": "SteamCMD Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "581330",
+        "UpdateSourceArgs": "581320",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Config Directory Creation",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "CreateDirectory",
+        "UpdateSourceArgs": "{{$FullBaseDir}}Insurgency/Saved/Config/WindowsServer",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Config Directory Creation",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "CreateDirectory",
+        "UpdateSourceArgs": "{{$FullBaseDir}}Insurgency/Saved/Config/LinuxServer",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Base Config Download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "FetchURL",
+        "UpdateSourceData": "https://cdn-repo.c7rs.com/AMPTemplates/insurgencysandstormgame.ini",
+        "UpdateSourceTarget": "{{$FullBaseDir}}Insurgency/Saved/Config/WindowsServer",
+        "UpdateSourceArgs": "Game.ini",
+        "UnzipUpdateSource": false,
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Base Config Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "FetchURL",
+        "UpdateSourceData": "https://cdn-repo.c7rs.com/AMPTemplates/insurgencysandstormgame.ini",
+        "UpdateSourceTarget": "{{$FullBaseDir}}Insurgency/Saved/Config/LinuxServer",
+        "UpdateSourceArgs": "Game.ini",
+        "UnzipUpdateSource": false,
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    }
+]

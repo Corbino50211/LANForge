@@ -1,0 +1,34 @@
+[
+    {
+        "DisplayName": "Memory Limit (MB)",
+        "Category": "Starmade:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "Java's maximum heap size",
+        "Keywords": "max ram heap",
+        "FieldName": "MaxHeap",
+        "InputType": "number",
+        "IsFlagArgument": false,
+        "ParamFieldName": "MaxHeap",
+        "IncludeInCommandLine": false,
+        "DefaultValue": "1024",
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Release Stream",
+        "Category": "Starmade:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "Which release stream of the game to download",
+        "Keywords": "release,stream,branch,version",
+        "FieldName": "ReleaseStream",
+        "InputType": "enum",
+        "IsFlagArgument": false,
+        "ParamFieldName": "ReleaseStream",
+        "IncludeInCommandLine": false,
+        "DefaultValue": "",
+        "EnumValues": {
+            "": "Default",
+            "dev/": "Dev",
+            "pre/": "Preview"
+        }
+    }
+]

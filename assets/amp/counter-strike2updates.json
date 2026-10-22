@@ -1,0 +1,122 @@
+[
+    {
+        "UpdateStageName": "SteamCMD Server Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "730",
+        "UpdateSourceArgs": "730",
+        "UpdateSourceVersion": "public",
+        "UpdateSourceConditionSetting": "EnableBeta",
+        "UpdateSourceConditionValue": "false",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "SteamCMD Server Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "730",
+        "UpdateSourceArgs": "730",
+        "UpdateSourceVersion": "{{BetaBranch}}",
+        "UpdateSourceConditionSetting": "EnableBeta",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "SteamCMD Component Download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "1007",
+        "UpdateSourceTarget": "{{$FullBaseDir}}game/bin/win64",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Metamod Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"MetamodBuild=\\\"{{MetamodBuild}}\\\" && MetamodBranch=\\\"{{MetamodBranch}}\\\" && if [[ -z \\\"$MetamodBuild\\\" ]]; then wget -qO metamod.tar.gz \\\"https://metamodsource.net/latest.php?os=linux&version=$MetamodBranch\\\" && echo \\\"Latest Metamod $MetamodBranch build downloaded\\\" && exit 0; elif [[ ! \\\"$MetamodBuild\\\" =~ ^[0-9]+$ ]]; then echo \\\"Invalid Metamod build version format specified\\\" && exit 1; fi; if [[ \\\"$MetamodBranch\\\" == \\\"2.0\\\" ]] && [[ \\\"$MetamodBuild\\\" -ge 1391 ]]; then DownloadURL=\\\"https://github.com/alliedmodders/metamod-source/releases/download/$MetamodBranch.0.$MetamodBuild/mmsource-$MetamodBranch.0-git$MetamodBuild-linux.tar.gz\\\"; else DownloadURL=\\\"https://mms.alliedmods.net/mmsdrop/$MetamodBranch/mmsource-$MetamodBranch.0-git$MetamodBuild-linux.tar.gz\\\"; fi; wget -qO metamod.tar.gz \\\"$DownloadURL\\\" && echo \\\"Metamod $MetamodBranch build $MetamodBuild downloaded\\\"\"",
+        "UpdateSourceConditionSetting": "InstallMetamod",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Metamod Download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "powershell.exe",
+        "UpdateSourceArgs": "-NoProfile -Command \"$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $MetamodBuild='{{MetamodBuild}}'; $MetamodBranch='{{MetamodBranch}}'; if ([string]::IsNullOrWhiteSpace($MetamodBuild)) { Invoke-WebRequest -UseBasicParsing -Uri \\\"https://metamodsource.net/latest.php?os=windows&version=$MetamodBranch\\\" -OutFile 'metamod.zip'; if ($?) { Write-Output \\\"Latest Metamod $MetamodBranch build downloaded\\\"; exit 0 } } elseif ($MetamodBuild -notmatch '^\\d+$') { Write-Output \\\"Invalid Metamod build version format specified\\\"; exit 1 }; if ($MetamodBranch -eq '2.0' -and [int]$MetamodBuild -ge 1391) { $DownloadURL = \\\"https://github.com/alliedmodders/metamod-source/releases/download/$MetamodBranch.0.$MetamodBuild/mmsource-$MetamodBranch.0-git$MetamodBuild-windows.zip\\\" } else { $DownloadURL = \\\"https://mms.alliedmods.net/mmsdrop/$MetamodBranch/mmsource-$MetamodBranch.0-git$MetamodBuild-windows.zip\\\" }; Invoke-WebRequest -UseBasicParsing -Uri $DownloadURL -OutFile 'metamod.zip'; if ($?) { Write-Output \\\"Metamod $MetamodBranch build $MetamodBuild downloaded\\\" }\"",
+        "UpdateSourceConditionSetting": "InstallMetamod",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Metamod Extract",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "ExtractArchive",
+        "UpdateSourceData": "metamod.tar.gz",
+        "UpdateSourceTarget": "{{$FullBaseDir}}game/csgo",
+        "OverwriteExistingFiles": true,
+        "DeleteAfterExtract": true,
+        "UpdateSourceConditionSetting": "InstallMetamod",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Metamod Extract",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "ExtractArchive",
+        "UpdateSourceData": "metamod.zip",
+        "UpdateSourceTarget": "{{$FullBaseDir}}game/csgo",
+        "OverwriteExistingFiles": true,
+        "DeleteAfterExtract": true,
+        "UpdateSourceConditionSetting": "InstallMetamod",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Activate Metamod",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"sed -i \\\"/^\\s*Game\\s*csgo\\s*$/ { s//\\t\\t\\tGame\\tcsgo\\/addons\\/metamod\\n&/ }\\\" counter-strike2/730/game/csgo/gameinfo.gi\"",
+        "UpdateSourceConditionSetting": "InstallMetamod",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Activate Metamod",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "cmd.exe",
+        "UpdateSourceArgs": "/C start powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command \"(Get-Content 'counter-strike2\\730\\game\\csgo\\gameinfo.gi') -replace '^\\s*Game\\s*csgo\\s*$', \\\"`t`t`tGame`tcsgo/addons/metamod`n`t`t`tGame`tcsgo\\\" | Set-Content 'counter-strike2\\730\\game\\csgo\\gameinfo.gi'\"",
+        "UpdateSourceConditionSetting": "InstallMetamod",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "CounterStrikeSharp Download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "FetchURLFromJQ",
+        "UpdateSourceData": "https://api.github.com/repos/roflmuffin/CounterStrikeSharp/releases/latest",
+        "UpdateSourceArgs": "$.assets[3].browser_download_url",
+        "UpdateSourceTarget": "{{$FullBaseDir}}game/csgo",
+        "UnzipUpdateSource": true,
+        "OverwriteExistingFiles": true,
+        "UpdateSourceConditionSetting": "InstallCSSharp",
+        "UpdateSourceConditionValue": "true",
+        "DeleteAfterExtract": true
+    },
+    {
+        "UpdateStageName": "CounterStrikeSharp Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "FetchURLFromJQ",
+        "UpdateSourceData": "https://api.github.com/repos/roflmuffin/CounterStrikeSharp/releases/latest",
+        "UpdateSourceArgs": "$.assets[2].browser_download_url",
+        "UpdateSourceTarget": "{{$FullBaseDir}}game/csgo",
+        "UnzipUpdateSource": true,
+        "OverwriteExistingFiles": true,
+        "UpdateSourceConditionSetting": "InstallCSSharp",
+        "UpdateSourceConditionValue": "true",
+        "DeleteAfterExtract": true
+    }
+]

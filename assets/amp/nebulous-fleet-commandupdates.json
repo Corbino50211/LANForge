@@ -1,0 +1,20 @@
+[
+    {
+        "UpdateStageName": "SteamCMD Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "2353090",
+        "UpdateSourceArgs": "887570",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Config File Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "FetchURL",
+        "UpdateSourceData": "https://cdn-repo.c7rs.com/AMPTemplates/nebulous-fleet-commanddedicatedserverconfig.xml",
+        "UpdateSourceArgs": "AMPServerConfig.xml",
+        "UpdateSourceTarget": "{{$FullBaseDir}}",
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    }
+]

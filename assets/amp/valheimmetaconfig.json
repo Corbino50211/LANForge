@@ -1,0 +1,9 @@
+[
+    {
+        "ConfigFile": "./BepInEx/config/org.bepinex.plugins.valheim_plus.cfg",
+        "AutoMap": true,
+        "Importable": false,
+        "ConfigType": "template",
+        "ConfigFileTemplate": "Valheim/AMP_valheim_plus.cfg"
+    }
+]

@@ -1,0 +1,9 @@
+[
+    {
+        "Protocol": "Both",
+        "Port": 30609,
+        "Ref": "ServerPort",
+        "Name": "Server Port",
+        "Description": "Port used for main game and ping traffic"
+    }
+]

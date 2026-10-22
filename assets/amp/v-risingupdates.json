@@ -1,0 +1,105 @@
+[
+    {
+        "UpdateStageName": "SteamCMD Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "1829350",
+        "UpdateSourceArgs": "1604030",
+        "UpdateSourceVersion": "{{ReleaseStream}}",
+        "ForceDownloadPlatform": "Windows",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Data Directory Creation",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "CreateDirectory",
+        "UpdateSourceArgs": "{{$FullBaseDir}}save-data/Settings",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Game Config File Copy",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "CopyFilePath",
+        "UpdateSourceData": "{{$FullBaseDir}}save-data/Settings/ServerHostSettings.json",
+        "UpdateSourceArgs": "{{$FullBaseDir}}VRisingServer_Data/StreamingAssets/Settings/ServerHostSettings.json",
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Game Config File Copy",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "CopyFilePath",
+        "UpdateSourceData": "{{$FullBaseDir}}save-data/Settings/ServerGameSettings.json",
+        "UpdateSourceArgs": "{{$FullBaseDir}}VRisingServer_Data/StreamingAssets/Settings/ServerGameSettings.json",
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "BepInEx Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"BepInExVersion=\\\"{{BepInExVersion}}\\\" && if [[ -z \\\"$BepInExVersion\\\" ]]; then BepInExVersion=$(wget -qO- https://thunderstore.io/api/v1/package-metrics/BepInEx/BepInExPack_V_Rising/ | jq -r \\\".latest_version\\\"); fi && if [[ ! \\\"$BepInExVersion\\\" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then echo \\\"Invalid BepInEx version format specified\\\" && exit 1; fi && wget -qO BepInEx.zip https://gcdn.thunderstore.io/live/repository/packages/BepInEx-BepInExPack_V_Rising-$BepInExVersion.zip && echo \\\"BepInEx v$BepInExVersion downloaded\\\"\"",
+        "UpdateSourceConditionSetting": "BepInExEnabled",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "BepInEx Download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "powershell.exe",
+        "UpdateSourceArgs": "-NoProfile -Command \"$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $BepInExVersion='{{BepInExVersion}}'; if ([string]::IsNullOrWhiteSpace($BepInExVersion)) { $BepInExVersion=(Invoke-RestMethod -UseBasicParsing -Uri https://thunderstore.io/api/v1/package-metrics/BepInEx/BepInExPack_V_Rising/).latest_version }; if ($BepInExVersion -notmatch '^\\d+\\.\\d+\\.\\d+$') { Write-Output \\\"Invalid BepInEx version format specified\\\"; exit 1 }; Invoke-WebRequest -UseBasicParsing -Uri https://gcdn.thunderstore.io/live/repository/packages/BepInEx-BepInExPack_V_Rising-$BepInExVersion.zip -OutFile 'BepInEx.zip'; if ($?) { Write-Output \\\"BepInEx v$BepInExVersion downloaded\\\" }\"",
+        "UpdateSourceConditionSetting": "BepInExEnabled",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "BepInEx Extract",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "ExtractArchive",
+        "UpdateSourceData": "BepInEx.zip",
+        "UpdateSourceTarget": "{{$FullBaseDir}}",
+        "OverwriteExistingFiles": true,
+        "DeleteAfterExtract": true,
+        "UpdateSourceConditionSetting": "BepInExEnabled",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "BepInEx Copy",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "cmd.exe",
+        "UpdateSourceArgs": "/C xcopy /E /Y /I v-rising\\1829350\\BepInExPack_V_Rising\\* v-rising\\1829350\\ && rmdir /Q /S v-rising\\1829350\\BepInExPack_V_Rising",
+        "UpdateSourceConditionSetting": "BepInExEnabled",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "BepInEx Copy",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"\\cp -rf ./v-rising/1829350/BepInExPack_V_Rising/* ./v-rising/1829350/ && rm -rf ./v-rising/1829350/BepInExPack_V_Rising/\"",
+        "UpdateSourceConditionSetting": "BepInExEnabled",
+        "UpdateSourceConditionValue": "true",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Proton GE Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"cd \\\"{{$FullRootDir}}\\\"; mkdir -p \\\"{{$FullRootDir}}.proton/compatdata\\\" \\\"{{$FullBaseDir}}.steam/steam\\\" \\\"{{$FullBaseDir}}.steam/sdk32\\\" \\\"{{$FullBaseDir}}.steam/sdk64\\\" \\\"{{$FullBaseDir}}.config/protonfixes\\\" && \\cp -f \\\"{{$FullRootDir}}linux32/steamclient.so\\\" \\\"{{$FullBaseDir}}.steam/sdk32/\\\" && \\cp -f \\\"{{$FullRootDir}}linux64/steamclient.so\\\" \\\"{{$FullBaseDir}}.steam/sdk64/\\\"; ProtonVersion=\\\"{{SpecificReleaseVersion}}\\\" && if [[ -x \\\"{{$FullRootDir}}.proton/proton\\\" && -f \\\"{{$FullRootDir}}.proton/version\\\" ]]; then read _ InstalledVersion < \\\"{{$FullRootDir}}.proton/version\\\"; else InstalledVersion=\\\"\\\"; fi; if [[ -z \\\"$ProtonVersion\\\" ]]; then ProtonVersion=$(wget -qO- https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest | jq -r .tag_name); fi; if [[ ! \\\"$ProtonVersion\\\" =~ ^GE-Proton[0-9]+-[0-9]+$ ]]; then echo \\\"Invalid Proton GE release version format specified\\\" && exit 1; elif [[ \\\"$InstalledVersion\\\" == \\\"$ProtonVersion\\\"* ]]; then echo \\\"Proton GE version $ProtonVersion already installed. Skipping\\\" && exit 0; else [[ -f GE-Proton.tar.gz ]] && rm -f GE-Proton.tar.gz >/dev/null 2>&1; suffix=\\\"\\\"; ver=\\\"${ProtonVersion#GE-Proton}\\\"; major=\\\"${ver%%-*}\\\"; minor=\\\"${ver#*-}\\\"; if (( major > 11 || (major == 11 && minor >= 4) )); then suffix=\\\"-x86_64\\\"; fi; wget -qO GE-Proton.tar.gz https://github.com/GloriousEggroll/proton-ge-custom/releases/download/$ProtonVersion/${ProtonVersion}${suffix}.tar.gz || { echo \\\"Proton GE download failed from GitHub. Aborting\\\"; exit 1; }; rm -rf \\\"{{$FullRootDir}}.proton/compatdata/\\\"* >/dev/null 2>&1; tar -xzf GE-Proton.tar.gz -C \\\"{{$FullRootDir}}.proton\\\" --strip-components=1 && rm -f GE-Proton.tar.gz >/dev/null 2>&1 && echo \\\"Proton GE version $ProtonVersion downloaded\\\" && { STEAM_COMPAT_DATA_PATH=\\\"{{$FullRootDir}}.proton/compatdata\\\" STEAM_COMPAT_CLIENT_INSTALL_PATH=\\\"{{$FullBaseDir}}.steam/steam\\\" \\\"{{$FullRootDir}}.proton/proton\\\" PROTON_LOG=1 >/dev/null 2>&1; exit 0; }; fi\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Disable Prefix Sound",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"cd \\\"{{$FullRootDir}}\\\" && export PATH=\\\"{{$FullRootDir}}.proton/files/bin:$PATH\\\"; export WINEPREFIX=\\\"{{$FullRootDir}}.proton/compatdata/pfx\\\"; export WINEARCH=win64; ./.proton/protonfixes/winetricks sound=disabled > winescript_log.txt 2>&1\"",
+        "SkipOnFailure": true
+    }
+]

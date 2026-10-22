@@ -1,0 +1,165 @@
+[
+    {
+        "DisplayName": "Server Port",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "",
+        "Keywords": "",
+        "FieldName": "$ServerPort",
+        "InputType": "number",
+        "Hidden": true,
+        "ParamFieldName": "$.port",
+        "ExcludeFromImport": true,
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Server Name",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "Sets the server name shown in the server browser. [Unity rich text formatting](https://docs.unity3d.com/Packages/com.unity.ugui@1.0/manual/StyledText.html) is supported",
+        "Keywords": "display,server,browser,name",
+        "FieldName": "name",
+        "InputType": "text",
+        "ParamFieldName": "$.name",
+        "DefaultValue": "AMP Powered Puck Server",
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Server Password",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "Sets the password required to connect to the server. Default is no password",
+        "Keywords": "server,password",
+        "FieldName": "password",
+        "InputType": "Password",
+        "ParamFieldName": "$.password",
+        "DefaultValue": "",
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Game Mode",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "Sets the game mode for the server",
+        "Keywords": "game,mode,gameMode",
+        "FieldName": "gameMode",
+        "InputType": "text",
+        "ParamFieldName": "$.gameMode",
+        "DefaultValue": "public",
+        "Placeholder": "public",
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Level",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "Sets the map/level to be loaded on the server",
+        "Keywords": "level,map",
+        "FieldName": "level",
+        "InputType": "text",
+        "ParamFieldName": "$.level",
+        "DefaultValue": "default",
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Make Server Public",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "If set, the server will be visible in the server browser",
+        "Keywords": "server,public,isPublic",
+        "FieldName": "isPublic",
+        "InputType": "checkbox",
+        "ParamFieldName": "$.isPublic",
+        "DefaultValue": "true",
+        "EnumValues": {
+            "False": "false",
+            "True": "true"
+        }
+    },
+    {
+        "DisplayName": "Player Limit",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "Sets the maximum number of players allowed on the server at one time",
+        "Keywords": "maximum,players,clients,limit,maxPlayers",
+        "FieldName": "$MaxUsers",
+        "InputType": "number",
+        "MinValue": "1",
+        "ParamFieldName": "$.maxPlayers",
+        "DefaultValue": "12",
+        "Placeholder": "12",
+        "Suffix": "players",
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Tick Rate",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "Sets the physics simulation and sync tick rate for the server",
+        "Keywords": "tick,rate,tickRate",
+        "FieldName": "tickRate",
+        "InputType": "number",
+        "ParamFieldName": "$.tickRate",
+        "DefaultValue": "200",
+        "Placeholder": "200",
+        "Suffix": "Hz",
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Enable VOIP",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "If set, VOIP will be enabled on the server",
+        "Keywords": "enable,voip,useVoip",
+        "FieldName": "voip",
+        "InputType": "checkbox",
+        "ParamFieldName": "$.useVoip",
+        "DefaultValue": "false",
+        "EnumValues": {
+            "False": "false",
+            "True": "true"
+        }
+    },
+    {
+        "DisplayName": "Use Whitelist",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "If set, only whitelisted players can join the server. Whitelisted players must be listed in 'whitelisted_steam_ids.json'",
+        "Keywords": "whitelist,useWhitelist",
+        "FieldName": "useWhitelist",
+        "InputType": "checkbox",
+        "ParamFieldName": "$.useWhitelist",
+        "DefaultValue": "false",
+        "EnumValues": {
+            "False": "false",
+            "True": "true"
+        }
+    },
+    {
+        "DisplayName": "Mods List",
+        "Category": "Puck:stadia_controller",
+        "Subcategory": "Server:dns:1",
+        "Description": "To set an array of mod configs specifying which Workshop mods are enabled on the server and whether clients must have them, edit the 'mods' setting in 'server_config.json'. [More details](https://codionca.github.io/PuckGuide/#step-7-create-server-configuration)",
+        "Keywords": "modslist,mods,workshop",
+        "FieldName": "modslist",
+        "InputType": "hidden",
+        "ParamFieldName": "modslist",
+        "DefaultValue": "",
+        "EnumValues": {}
+    },
+    {
+        "DisplayName": "Server Branch",
+        "Category": "Updates",
+        "Subcategory": "Steam Downloads:download",
+        "Description": "Sets the server branch to install. Update the server after switching branches",
+        "Keywords": "server,branch,depot",
+        "FieldName": "ServerBranch",
+        "InputType": "enum",
+        "ParamFieldName": "ServerBranch",
+        "DefaultValue": "public",
+        "EnumValues": {
+            "public": "Public (default)",
+            "pre-release": "Pre-release"
+        }
+    }
+]

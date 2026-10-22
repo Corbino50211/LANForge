@@ -1,0 +1,49 @@
+[
+    {
+        "UpdateStageName": "SteamCMD Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "1536610",
+        "UpdateSourceArgs": "1536610",
+        "UpdateSourceVersion": "{{ServerBranch}}",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Create Config Directory",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "CreateDirectory",
+        "UpdateSourceArgs": "{{$FullBaseDir}}config",
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Openttd.cfg Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "FetchURL",
+        "UpdateSourceData": "https://cdn-repo.c7rs.com/AMPTemplates/openttdopenttd.cfg",
+        "UpdateSourceArgs": "openttd.cfg",
+        "UpdateSourceTarget": "{{$FullBaseDir}}config",
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Private.cfg Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "FetchURL",
+        "UpdateSourceData": "https://cdn-repo.c7rs.com/AMPTemplates/openttdprivate.cfg",
+        "UpdateSourceArgs": "private.cfg",
+        "UpdateSourceTarget": "{{$FullBaseDir}}config",
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Secrets.cfg Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "FetchURL",
+        "UpdateSourceData": "https://cdn-repo.c7rs.com/AMPTemplates/openttdsecrets.cfg",
+        "UpdateSourceArgs": "secrets.cfg",
+        "UpdateSourceTarget": "{{$FullBaseDir}}config",
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    }
+]

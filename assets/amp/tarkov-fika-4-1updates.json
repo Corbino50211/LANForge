@@ -1,0 +1,113 @@
+[
+    {
+        "UpdateStageName": "Create Dotnet Directory",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "CreateDirectory",
+        "UpdateSourceArgs": "{{$FullRootDir}}dotnet"
+    },
+    {
+        "UpdateStageName": "ASP.NET Core Runtime Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"DotnetVersion=\\\"{{DotnetVersion}}\\\"; cd \\\"{{$FullRootDir}}\\\" && if [[ -x dotnet/dotnet ]]; then InstalledVersion=$(dotnet/dotnet --list-runtimes | sed -n \\\"s/^Microsoft\\.AspNetCore\\.App \\([0-9.]*\\) .*/\\1/p\\\" | head -n1); else InstalledVersion=\\\"\\\"; fi; if [[ -z \\\"$DotnetVersion\\\" ]]; then DotnetVersion=$(wget -qO- https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json | jq -r \\\".[\\\\\\\"latest-runtime\\\\\\\"]\\\"); fi; if [[ ! \\\"$DotnetVersion\\\" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then echo \\\"Invalid ASP.NET Core Runtime version format specified\\\" && exit 1; elif [[ \\\"$InstalledVersion\\\" == \\\"$DotnetVersion\\\" ]]; then echo \\\"ASP.NET Core Runtime v$DotnetVersion already installed. Skipping\\\" && exit 0; else [[ -f dotnet.tar.gz ]] && rm -f dotnet.tar.gz >/dev/null 2>&1; wget -qO dotnet.tar.gz https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/$DotnetVersion/aspnetcore-runtime-$DotnetVersion-linux-x64.tar.gz || { echo \\\"Download failed from the Microsoft CDN. This is a fault with the CDN, not AMP. Aborting\\\"; exit 1; }; rm -rf dotnet/* >/dev/null 2>&1 && tar -xzf dotnet.tar.gz -C dotnet >/dev/null 2>&1 && rm -f dotnet.tar.gz >/dev/null 2>&1 && echo \\\"ASP.NET Core Runtime v$DotnetVersion downloaded\\\"; fi\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "ASP.NET Core Runtime Download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "powershell.exe",
+        "UpdateSourceArgs": "-NoProfile -Command \"$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $DotnetVersion='{{DotnetVersion}}'; Set-Location -Path '{{$FullRootDir}}'; if (Test-Path 'dotnet/dotnet.exe') { $InstalledVersion = (& dotnet/dotnet.exe --list-runtimes | Where-Object { $_ -like 'Microsoft.AspNetCore.App*' } | Select-Object -First 1).Split()[1] } else { $InstalledVersion = '' }; if ( [string]::IsNullOrWhiteSpace($DotnetVersion) ) { $DotnetVersion=(Invoke-RestMethod -UseBasicParsing -Uri https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json).\\\"latest-runtime\\\" }; if ($DotnetVersion -notmatch '^\\d+\\.\\d+\\.\\d+$') { Write-Output \\\"Invalid ASP.NET Core Runtime version format specified\\\"; exit 1 } elseif ( $InstalledVersion -eq $DotnetVersion ) { Write-Output \\\"ASP.NET Core Runtime v$DotnetVersion already installed. Skipping\\\"; exit 0 } else { if ( Test-Path dotnet.zip ) { Remove-Item dotnet.zip -Force -ErrorAction SilentlyContinue *> $null }; try { Invoke-WebRequest -UseBasicParsing -Uri https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/$DotnetVersion/aspnetcore-runtime-$DotnetVersion-win-x64.zip -OutFile dotnet.zip -ErrorAction Stop } catch { Write-Output \\\"Download failed from the Microsoft CDN. This is a fault with the CDN, not AMP. Aborting\\\"; exit 1; }; Remove-Item -Path 'dotnet/*' -Recurse -Force -ErrorAction SilentlyContinue; Expand-Archive -Path \\\"dotnet.zip\\\" -DestinationPath \\\"dotnet\\\" -Force *> $null; if ( Test-Path dotnet.zip ) { Remove-Item dotnet.zip -Force -ErrorAction SilentlyContinue *> $null }; Write-Output \\\"ASP.NET Core Runtime v$DotnetVersion downloaded\\\" }\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "7-Zip Directory Creation",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "CreateDirectory",
+        "UpdateSourceArgs": "{{$FullRootDir}}7-Zip",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "7-Zip Installation",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "powershell.exe",
+        "UpdateSourceArgs": "-NoProfile -Command \"$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Set-Location -Path 'tarkov/7-Zip'; if (Test-Path '7z.exe') { exit 0 } else { Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/ip7z/7zip/releases/download/26.00/7z2600-x64.exe' -OutFile '7z-installer.exe' }; if ($?) { Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/ip7z/7zip/releases/download/26.00/7zr.exe' -OutFile '7zr.exe' }; if ($?) { & ./7zr.exe x -y -aoa 7z-installer.exe *> $null 2>&1; Remove-Item -Path '7z-installer.exe' -Force -ErrorAction SilentlyContinue | Out-Null }\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "7-Zip Installation",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"cd tarkov/7-Zip && [[ -x 7zzs ]] && exit 0 || { wget -qO 7z.tar.xz https://github.com/ip7z/7zip/releases/download/26.00/7z2600-linux-x64.tar.xz && tar -xf 7z.tar.xz >/dev/null 2>&1 && rm -f 7z.tar.xz >/dev/null 2>&1; }\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "SPT Directory Backup",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "powershell.exe",
+        "UpdateSourceArgs": "-NoProfile -Command \"Set-Location -Path 'tarkov/server'; if (Test-Path 'SPT_Runtime.bak') { Remove-Item 'SPT_Runtime.bak' -Recurse -Force -ErrorAction SilentlyContinue | Out-Null }; if (Test-Path 'SPT_Runtime') { Copy-Item -Path 'SPT_Runtime' -Destination 'SPT_Runtime.bak' -Recurse -Force -ErrorAction SilentlyContinue | Out-Null }\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "SPT Directory Backup",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"cd tarkov/server; [[ -d SPT_Runtime.bak ]] && rm -rf SPT_Runtime.bak >/dev/null 2>&1; [[ -d SPT_Runtime ]] && \\cp -rf SPT_Runtime SPT_Runtime.bak >/dev/null 2>&1 || exit 0\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "SPT Installation",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "powershell.exe",
+        "UpdateSourceArgs": "-NoProfile -Command \"$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Set-Location -Path 'tarkov/server'; $SPTVersion='{{SPTVersion}}'; if ( [string]::IsNullOrWhiteSpace($SPTVersion) ) { $SPTVersion='4.1' }; if ( $SPTVersion -notmatch '^\\d+(\\.\\d+){0,2}$' ) { Write-Output 'Invalid SPT version format specified'; exit 1 }; $SPTPattern = $SPTVersion -replace '\\.','[.]'; $Releases = (Invoke-WebRequest -UseBasicParsing -Uri 'https://api.github.com/repos/sp-tushonka/build/releases?per_page=100').Content; $DownloadURL = [regex]::Match($Releases, \\\"https://mirror\\.sp-tushonka\\.com/[A-Za-z0-9._-]+/SPT-${SPTPattern}[.-][A-Za-z0-9._-]+\\.7z\\\").Value; if ( [string]::IsNullOrWhiteSpace($DownloadURL) ) { Write-Output \\\"No download URL found for SPT $SPTVersion. The GitHub API may be rate limited, or that version does not exist. Aborting\\\"; exit 1 }; Write-Output \\\"Downloading $DownloadURL\\\"; Invoke-WebRequest -UseBasicParsing -Uri \\\"$DownloadURL\\\" -OutFile 'SPT.7z'; & ../7-Zip/7z.exe x -y -aoa SPT.7z | Out-Null; Remove-Item -Path 'SPT.7z' -Force -ErrorAction SilentlyContinue | Out-Null\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "SPT Installation",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"cd tarkov/server && SPTVersion='{{SPTVersion}}'; if [[ -z \\\"$SPTVersion\\\" ]]; then SPTVersion=\\\"4.1\\\"; fi; if [[ ! \\\"$SPTVersion\\\" =~ ^[0-9]+(\\.[0-9]+){0,2}$ ]]; then echo \\\"Invalid SPT version format specified\\\"; exit 1; fi; SPTPattern=${SPTVersion//./[.]}; DownloadURL=$(wget -qO- \\\"https://api.github.com/repos/sp-tushonka/build/releases?per_page=100\\\" | grep -Eo \\\"https://mirror\\.sp-tushonka\\.com/[A-Za-z0-9._-]+/SPT-${SPTPattern}[.-][A-Za-z0-9._-]+\\.7z\\\" | head -n 1); if [[ -z \\\"$DownloadURL\\\" ]]; then echo \\\"No download URL found for SPT $SPTVersion. The GitHub API may be rate limited, or that version does not exist. Aborting\\\"; exit 1; fi; echo \\\"Downloading $DownloadURL\\\" && wget -qO SPT.7z \\\"$DownloadURL\\\" && ../7-Zip/7zzs x -y -aoa SPT.7z >/dev/null 2>&1 && rm -f SPT.7z >/dev/null 2>&1 && chmod +x SPT_Runtime/SPT.Server.Linux >/dev/null 2>&1\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Fika Server Mod Download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "powershell.exe",
+        "UpdateSourceArgs": "-NoProfile -Command \"$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Set-Location -Path 'tarkov/server'; $FikaVersion='{{FikaVersion}}'; if ( (-not [string]::IsNullOrWhiteSpace($FikaVersion)) -and ($FikaVersion -notmatch '^\\d+\\.\\d+\\.\\d+$') ) { Write-Output 'Invalid Fika Server version format specified'; exit 1 }; if ( [string]::IsNullOrWhiteSpace($FikaVersion) ) { $ReleaseURL='https://api.github.com/repos/project-fika/Fika-Server-CSharp/releases/latest' } else { $ReleaseURL=\\\"https://api.github.com/repos/project-fika/Fika-Server-CSharp/releases/tags/v$FikaVersion\\\" }; try { $Release = Invoke-RestMethod -UseBasicParsing -Uri $ReleaseURL -ErrorAction Stop } catch { Write-Output \\\"No release found for Fika Server $FikaVersion. The GitHub API may be rate limited, or that version does not exist. Aborting\\\"; exit 1 }; $DownloadURL = ($Release.assets | Where-Object { $_.name -like '*.zip' } | Select-Object -First 1).browser_download_url; if ( [string]::IsNullOrWhiteSpace($DownloadURL) ) { Write-Output 'No download URL found for the Fika Server release. Aborting'; exit 1 }; Write-Output \\\"Downloading $DownloadURL\\\"; Invoke-WebRequest -UseBasicParsing -Uri \\\"$DownloadURL\\\" -OutFile 'Fika.zip'; & ../7-Zip/7z.exe x -y -aoa Fika.zip | Out-Null; Remove-Item -Path 'Fika.zip' -Force -ErrorAction SilentlyContinue | Out-Null\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Fika Server Mod Download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSource": "Executable",
+        "UpdateSourceData": "/bin/bash",
+        "UpdateSourceArgs": "-c \"cd tarkov/server && FikaVersion='{{FikaVersion}}'; if [[ -n \\\"$FikaVersion\\\" && ! \\\"$FikaVersion\\\" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then echo \\\"Invalid Fika Server version format specified\\\"; exit 1; fi; if [[ -z \\\"$FikaVersion\\\" ]]; then ReleaseURL=\\\"https://api.github.com/repos/project-fika/Fika-Server-CSharp/releases/latest\\\"; else ReleaseURL=\\\"https://api.github.com/repos/project-fika/Fika-Server-CSharp/releases/tags/v$FikaVersion\\\"; fi; DownloadURL=$(wget -qO- \\\"$ReleaseURL\\\" | jq -r '[.assets[] | select(.name | endswith(\\\".zip\\\")) | .browser_download_url][0] // empty' 2>/dev/null); if [[ -z \\\"$DownloadURL\\\" ]]; then echo \\\"No download URL found for Fika Server ${FikaVersion:-latest}. The GitHub API may be rate limited, or that version does not exist. Aborting\\\"; exit 1; fi; echo \\\"Downloading $DownloadURL\\\" && wget -qO Fika.zip \\\"$DownloadURL\\\" && ../7-Zip/7zzs x -y -aoa Fika.zip >/dev/null 2>&1 && rm -f Fika.zip >/dev/null 2>&1\"",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Server Startup",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "StartApplication",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Wait For Server Startup",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "WaitForStartupComplete",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Server Shutdown",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "ShutdownApplication",
+        "SkipOnFailure": false
+    }
+]

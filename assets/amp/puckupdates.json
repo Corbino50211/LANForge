@@ -1,0 +1,30 @@
+[
+    {
+        "UpdateStageName": "Server Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "3481440",
+        "UpdateSourceArgs": "2994020",
+        "UpdateSourceVersion": "{{ServerBranch}}",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "SteamCMD Component Download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSource": "SteamCMD",
+        "UpdateSourceData": "1007",
+        "UpdateSourceArgs": "2994020",
+        "UpdateSourceTarget": "{{$FullBaseDir}}",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Server_config.json Download",
+        "UpdateSourcePlatform": "All",
+        "UpdateSource": "FetchURL",
+        "UpdateSourceData": "https://cdn-repo.c7rs.com/AMPTemplates/puckserver_config.json",
+        "UpdateSourceTarget": "{{$FullBaseDir}}",
+        "UpdateSourceArgs": "server_config.json",
+        "OverwriteExistingFiles": false,
+        "SkipOnFailure": false
+    }
+]
