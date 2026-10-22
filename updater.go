@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"github.com/gofrs/flock"
 	"log"
 	"os"
 	"os/exec"
@@ -99,7 +100,12 @@ func installUpdate() (bool, error) {
 	if len(expected) != 64 {
 		return false, errors.New("SHA256SUMS.txt has no checksum for " + updateAsset())
 	}
-	// The controller and its local host share one executable; the first to update does the swap.
+	// The controller and its local host share one executable; the lock makes the second wait and find the swap done.
+	lock := flock.New(exe + ".update-lock")
+	if e = lock.Lock(); e != nil {
+		return false, e
+	}
+	defer lock.Unlock()
 	if fileSHA256(exe) == expected {
 		return true, nil
 	}

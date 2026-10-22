@@ -295,6 +295,19 @@ func runMain() error {
 	if e = c.localHost(); e != nil {
 		return e
 	}
+	// Bring the local host back if it exits; localHost does nothing while one holds the lock.
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(30 * time.Second):
+			}
+			if e := c.localHost(); e != nil {
+				log.Printf("Local host: %s", e)
+			}
+		}
+	}()
 	if !*noBrowser {
 		time.AfterFunc(time.Second, func() { openBrowser(fmt.Sprintf("https://localhost:%d", cfg.Port)) })
 	}

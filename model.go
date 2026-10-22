@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-const Version = "0.2.2"
+const Version = "0.2.3"
 
 type Config struct {
 	Role        string `json:"role"`

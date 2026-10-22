@@ -12,7 +12,7 @@ type Runtime={id:string,state:string,message:string,pid?:number,logs:string[],cp
 type Tunnel={id:string,name:string,local_ip:string,local_port:number,proto:string,assigned_domain:string,port:{from:number,to:number},disabled:boolean};
 type Playit={linked:boolean;state:string,message:string,claimUrl?:string,tunnels:Tunnel[]};
 type State={nodes:NodeInfo[],servers:ServerInfo[],runtime:Record<string,Runtime>,playit:Record<string,Playit>,notices:{message:string,time:string,error:boolean}[],version:string};
-const empty:State={nodes:[],servers:[],runtime:{},playit:{},notices:[],version:'0.2.2'};
+const empty:State={nodes:[],servers:[],runtime:{},playit:{},notices:[],version:'0.2.3'};
 async function api<T=any>(path:string,body?:unknown):Promise<T>{const r=await fetch('/api'+path,{method:body===undefined?'GET':'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-LanForge':'1'},body:body===undefined?undefined:JSON.stringify(body)});const d=await r.json();if(!r.ok){if(r.status===401&&path!=='/login')window.dispatchEvent(new Event('signed-out'));throw Error(d.error||`Request failed (${r.status})`)}return d}
 const bytes=(n=0)=>n>=1073741824?(n/1073741824).toFixed(1)+' GB':n>=1048576?(n/1048576).toFixed(0)+' MB':(n/1024).toFixed(0)+' KB';
 const pretty=(s:string)=>s.replaceAll('_',' ').replace(/^./,c=>c.toUpperCase());
