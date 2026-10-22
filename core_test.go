@@ -497,3 +497,27 @@ func TestStageHelpers(t *testing.T) {
 		t.Fatal(v)
 	}
 }
+
+func TestMinecraftPropertiesAndWhitelist(t *testing.T) {
+	m := newManaged(t.TempDir(), Server{Engine: "minecraft", Name: "Test", Plan: &Plan{}, Ports: []Port{{Number: 25570}}, Settings: map[string]string{"eula": "true", "memory": "1024", "maxPlayers": "5", "world": "w", "properties": "difficulty=hard\nonline-mode=false\nserver-port=1", "whitelist": "Steve\nAlex"}})
+	if e := configureGame(m); e != nil {
+		t.Fatal(e)
+	}
+	b, _ := os.ReadFile(filepath.Join(m.root, "game", "server.properties"))
+	for _, want := range []string{"difficulty=hard", "server-port=25570", "white-list=true", "max-players=5"} {
+		if !strings.Contains(string(b), want) {
+			t.Fatalf("server.properties missing %s:\n%s", want, b)
+		}
+	}
+	var list []map[string]string
+	if e := readJSON(filepath.Join(m.root, "game", "whitelist.json"), &list); e != nil || len(list) != 2 || list[0]["name"] != "Steve" {
+		t.Fatalf("whitelist: %v %v", list, e)
+	}
+	// Offline UUID for "Steve", as the vanilla server computes it.
+	if list[0]["uuid"] != "5627dd98-e6be-3c21-b8a8-e92344183641" {
+		t.Fatalf("offline uuid %s", list[0]["uuid"])
+	}
+	if _, e := minecraftWhitelist([]string{"bad name!"}, false); e == nil {
+		t.Fatal("accepted invalid name")
+	}
+}

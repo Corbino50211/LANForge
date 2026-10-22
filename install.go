@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -396,6 +398,32 @@ func steamInstall(h *Host, m *Managed, appid, dest, branch, platform string, log
 	}
 	return nil
 }
+// minecraftWhitelist builds whitelist.json entries. Online servers need the Mojang UUID; offline servers use the name-derived one.
+func minecraftWhitelist(names []string, online bool) ([]map[string]string, error) {
+	list := []map[string]string{}
+	for _, name := range names {
+		if !minecraftNameRE.MatchString(name) {
+			return nil, fmt.Errorf("%q is not a valid Minecraft player name", name)
+		}
+		var id string
+		if online {
+			var p struct{ ID, Name string }
+			if e := fetchJSON("https://api.mojang.com/users/profiles/minecraft/"+name, &p); e != nil || len(p.ID) != 32 {
+				return nil, fmt.Errorf("could not find Minecraft player %s; check the spelling", name)
+			}
+			id, name = p.ID, p.Name
+		} else {
+			b := md5.Sum([]byte("OfflinePlayer:" + name))
+			b[6], b[8] = b[6]&0x0f|0x30, b[8]&0x3f|0x80
+			id = hex.EncodeToString(b[:])
+		}
+		list = append(list, map[string]string{"uuid": id[:8] + "-" + id[8:12] + "-" + id[12:16] + "-" + id[16:20] + "-" + id[20:], "name": name})
+	}
+	return list, nil
+}
+
+var minecraftNameRE = regexp.MustCompile(`^[A-Za-z0-9_]{1,16}$`)
+
 func configureGame(m *Managed) error {
 	s := m.specCopy()
 	if len(s.Ports) == 0 {
@@ -416,8 +444,27 @@ func configureGame(m *Managed) error {
 		if e := atomicWrite(filepath.Join(game, "eula.txt"), []byte("eula=true\n"), 0600); e != nil {
 			return e
 		}
-		if e := mergeProperties(filepath.Join(game, "server.properties"), map[string]string{"server-port": port, "server-ip": "", "max-players": s.Settings["maxPlayers"], "level-name": s.Settings["world"], "motd": s.Name, "online-mode": "true", "enable-rcon": "false"}); e != nil {
+		props := map[string]string{"server-ip": "", "motd": s.Name, "online-mode": "true", "enable-rcon": "false"}
+		for k, v := range parseKVP([]byte(s.Settings["properties"])) {
+			props[k] = v
+		}
+		names := strings.FieldsFunc(s.Settings["whitelist"], func(r rune) bool { return r == ',' || r == '\n' || r == '\r' || r == ' ' })
+		if len(names) > 0 {
+			props["white-list"], props["enforce-whitelist"] = "true", "true"
+		}
+		// These belong to other fields and the reserved port.
+		props["server-port"], props["max-players"], props["level-name"] = port, s.Settings["maxPlayers"], s.Settings["world"]
+		if e := mergeProperties(filepath.Join(game, "server.properties"), props); e != nil {
 			return e
+		}
+		if _, ok := s.Settings["whitelist"]; ok {
+			list, e := minecraftWhitelist(names, props["online-mode"] != "false")
+			if e != nil {
+				return e
+			}
+			if e = writeJSON(filepath.Join(game, "whitelist.json"), list); e != nil {
+				return e
+			}
 		}
 	case "terraria":
 		os.MkdirAll(filepath.Join(game, "worlds"), 0700)

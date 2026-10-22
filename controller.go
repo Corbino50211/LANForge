@@ -546,8 +546,16 @@ func validateServer(s *Server, t Template) error {
 	if s.Mode != "lan" && s.Mode != "playit" && s.Mode != "direct" {
 		return errors.New("choose a connection mode")
 	}
+	multiline := map[string]bool{}
+	for _, f := range t.Fields {
+		multiline[f.ID] = f.Type == "textarea"
+	}
 	for k, v := range s.Settings {
-		if len(v) > 4096 || strings.ContainsAny(v, "\r\n\x00") {
+		if multiline[k] {
+			if len(v) > 32768 || strings.ContainsRune(v, 0) {
+				return fmt.Errorf("invalid setting: %s", k)
+			}
+		} else if len(v) > 4096 || strings.ContainsAny(v, "\r\n\x00") {
 			return fmt.Errorf("invalid setting: %s", k)
 		}
 	}

@@ -3,3 +3,4 @@ ui/node_modules/
 research-vendor/
 *.exe
 /lanforge
+/20*-*.txt

@@ -31,7 +31,56 @@ type Catalog struct {
 }
 
 var includeRE = regexp.MustCompile(`(?i)^@includejson\[([^\]]+)\]$`)
-var trailingCommaRE = regexp.MustCompile(`,(\s*[}\]])`)
+// Vanilla defaults minus the keys LANForge manages (server-port, max-players, level-name).
+const minecraftProperties = `motd=A LANForge Minecraft server
+gamemode=survival
+difficulty=easy
+hardcore=false
+pvp=true
+online-mode=true
+white-list=false
+enforce-whitelist=false
+allow-flight=false
+spawn-monsters=true
+spawn-protection=16
+view-distance=10
+simulation-distance=10
+level-seed=
+level-type=minecraft\:normal
+generate-structures=true
+generator-settings={}
+max-world-size=29999984
+force-gamemode=false
+enable-command-block=false
+player-idle-timeout=0
+op-permission-level=4
+function-permission-level=2
+pause-when-empty-seconds=60
+hide-online-players=false
+enforce-secure-profile=true
+prevent-proxy-connections=false
+enable-status=true
+enable-query=false
+enable-rcon=false
+broadcast-console-to-ops=true
+broadcast-rcon-to-ops=true
+log-ips=true
+max-tick-time=60000
+max-chained-neighbor-updates=1000000
+network-compression-threshold=256
+rate-limit=0
+sync-chunk-writes=true
+use-native-transport=true
+accepts-transfers=false
+require-resource-pack=false
+resource-pack=
+resource-pack-sha1=
+resource-pack-prompt=
+initial-enabled-packs=vanilla
+initial-disabled-packs=
+`
+
+var trailingCommaRE =regexp.MustCompile(`,(\s*[}\]])`)
 var variableRE = regexp.MustCompile(`\{\{([^{}]+)\}\}`)
 
 func parseKVP(b []byte) map[string]string {
@@ -204,7 +253,7 @@ func (c *Catalog) load() error {
 		}
 		items[id] = t
 	}
-	items["minecraft-java"] = Template{ID: "minecraft-java", Name: "Minecraft Java", Description: "Official vanilla server. Java is installed automatically.", OS: []string{"windows", "linux"}, Engine: "minecraft", Status: "supported", Source: "Mojang", Revision: "builtin-1", Ports: []Port{{"game", "Game", 25565, "tcp", true}}, Fields: []Field{{ID: "version", Name: "Version", Default: "latest", Type: "text"}, {ID: "memory", Name: "Maximum memory (MB)", Default: "2048", Type: "number"}, {ID: "maxPlayers", Name: "Player limit", Default: "20", Type: "number"}, {ID: "world", Name: "World name", Default: "world", Type: "text"}, {ID: "eula", Name: "I accept the Minecraft EULA", Default: "false", Type: "checkbox"}}}
+	items["minecraft-java"] = Template{ID: "minecraft-java", Name: "Minecraft Java", Description: "Official vanilla server. Java is installed automatically.", OS: []string{"windows", "linux"}, Engine: "minecraft", Status: "supported", Source: "Mojang", Revision: "builtin-1", Ports: []Port{{"game", "Game", 25565, "tcp", true}}, Fields: []Field{{ID: "version", Name: "Version", Default: "latest", Type: "text"}, {ID: "memory", Name: "Maximum memory (MB)", Default: "2048", Type: "number"}, {ID: "maxPlayers", Name: "Player limit", Default: "20", Type: "number"}, {ID: "world", Name: "World name", Default: "world", Type: "text"}, {ID: "eula", Name: "I accept the Minecraft EULA", Default: "false", Type: "checkbox"}, {ID: "properties", Name: "server.properties", Description: "Every vanilla setting, one key=value per line. Port, player limit and world name come from the settings above.", Default: minecraftProperties, Type: "textarea"}, {ID: "whitelist", Name: "Whitelist", Description: "One player name per line. Turns the whitelist on. Leave empty to let anyone join.", Default: "", Type: "textarea"}}}
 	if t, ok := items["valheim"]; ok {
 		t.Engine = "valheim"
 		t.Status = "supported"
