@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-const Version = "0.2.0"
+const Version = "0.2.1"
 
 type Config struct {
 	Role        string `json:"role"`
@@ -101,6 +101,7 @@ type Step struct {
 	Platform  string `json:"platform,omitempty"`
 	Overwrite bool   `json:"overwrite,omitempty"`
 	Skip      bool   `json:"skip,omitempty"`
+	Login     bool   `json:"login,omitempty"`
 }
 type Stats struct {
 	CPU       float64 `json:"cpu"`
@@ -110,14 +111,15 @@ type Stats struct {
 	DiskTotal uint64  `json:"diskTotal"`
 }
 type Node struct {
-	ID       string    `json:"id"`
-	Name     string    `json:"name"`
-	OS       string    `json:"os"`
-	Arch     string    `json:"arch"`
-	Address  string    `json:"address"`
-	Online   bool      `json:"online"`
-	LastSeen time.Time `json:"lastSeen"`
-	Stats    Stats     `json:"stats"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	OS        string    `json:"os"`
+	Arch      string    `json:"arch"`
+	Address   string    `json:"address"`
+	Online    bool      `json:"online"`
+	LastSeen  time.Time `json:"lastSeen"`
+	Stats     Stats     `json:"stats"`
+	SteamUser string    `json:"steamUser,omitempty"`
 }
 type Runtime struct {
 	ID      string    `json:"id"`

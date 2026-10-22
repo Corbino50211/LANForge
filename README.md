@@ -1,4 +1,4 @@
-# LANForge 0.2.0 — local hosting preview
+# LANForge 0.2.1 — local hosting preview
 
 A local controller and host application for Windows and Linux. Run the controller on your main PC and pair your laptops. The same executable runs either role. The controller also hosts games itself.
 
@@ -42,7 +42,7 @@ DNS does not replace forwarding or bypass CGNAT. Other DNS providers, IPv6, and 
 
 ## Preview limitations
 
-This is an early working implementation, not full AMP compatibility. Arbitrary AMP scripts, proprietary AMP runtime modules, authenticated Steam installs and complex config generators are marked unsupported. Catalog visibility does not mean a game can be installed. Mods, scheduled backups, game player counts, multi-user roles, automatic application updates and server deletion are not implemented. Change game ports or connection mode by creating a new server; do not overwrite existing worlds.
+This is an early working implementation, not full AMP compatibility. Arbitrary AMP scripts, proprietary AMP runtime modules, XML config mapping, GitRepo installers and Windows-only builds on Linux (Wine) are marked unsupported. Catalog visibility does not mean a game can be installed. Mods, scheduled backups, game player counts, multi-user roles, automatic application updates and server deletion are not implemented. Change game ports or connection mode by creating a new server; do not overwrite existing worlds.
 
 Settings edits require a stopped server. Generic AMP configuration is edited in Files. File uploads are limited to 8 MiB each and text editing to 2 MiB. Backups include the game directory and need enough space for an additional copy; take backups before upgrading. Repair may update official game files.
 
@@ -53,6 +53,10 @@ Playit and Cloudflare code is implemented but has not been exercised with a real
 ## Automatic updates
 
 LANForge checks the latest GitHub release of `Corbino50211/LANForge` (set by `UpdateRepo` in `updater.go`; the repository must be public) one minute after start and every six hours. A release tagged `vX.Y.Z` must contain `lanforge-windows-amd64.exe`, `lanforge-linux-amd64` and `SHA256SUMS.txt` (the build scripts produce all three in `dist/`). The download is verified against the checksum, swapped in, and the app restarts itself. Hosts wait until no game is running, installing or being backed up before restarting. The controller restarts right away because games run on its separate host process. Restarted processes log to `lanforge.log` in the data folder.
+
+## Steam sign-in
+
+Some games download only with a Steam account that owns them. Open **Computers**, choose **Steam sign-in** on the computer that will host the game, and enter your username, password and (if asked) the Steam Guard code, or leave the code blank and approve the sign-in in the Steam app. The password is used once and is not stored. SteamCMD keeps its own login token in that computer's data folder (`tools/steamcmd`). Sign in on each host separately. If installs later fail with a login error, sign in again.
 
 ## Your data
 

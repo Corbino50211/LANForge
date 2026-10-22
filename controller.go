@@ -282,6 +282,21 @@ func (c *Controller) routes() http.Handler {
 		}
 		jsonReply(w, 200, res)
 	})
+	m.HandleFunc("POST /api/nodes/{id}/steam/{action}", func(w http.ResponseWriter, r *http.Request) {
+		act := r.PathValue("action")
+		if act != "login" && act != "logout" {
+			apiError(w, errors.New("unknown action"))
+			return
+		}
+		args := map[string]string{}
+		json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&args)
+		res, e := c.call(r.Context(), r.PathValue("id"), Command{Action: "steam." + act, Args: args})
+		if e != nil {
+			apiError(w, e)
+			return
+		}
+		jsonReply(w, 200, res)
+	})
 	m.HandleFunc("GET /api/settings", func(w http.ResponseWriter, r *http.Request) {
 		var zone string
 		c.store.get("settings", "cfZone", &zone)
@@ -655,6 +670,9 @@ func (c *Controller) createServer(w http.ResponseWriter, r *http.Request) {
 	s.Revision = t.Revision
 	s.Created = time.Now()
 	s.DNS = nil
+	if s.Settings["$ExternalIP"] == "" {
+		s.Settings["$ExternalIP"] = n.Address
+	}
 	s.Plan, e = compilePlan(t, s, n.OS)
 	if e != nil {
 		apiError(w, e)

@@ -37,7 +37,7 @@ func runStep(h *Host, m *Managed, st Step) error {
 		if e != nil {
 			return e
 		}
-		return steamInstall(h, m, st.AppID, dest, st.Branch, st.Platform)
+		return steamInstall(h, m, st.AppID, dest, st.Branch, st.Platform, st.Login)
 	case "createdirectory":
 		p, e := at(st.Args)
 		if e != nil {

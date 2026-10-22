@@ -87,7 +87,7 @@ func (h *Host) heartbeat() Wire {
 		host = h.cfg.Name
 	}
 	p := h.playit.snapshot()
-	return Wire{Type: "heartbeat", Node: &Node{ID: h.cfg.AgentID, Name: host, OS: runtime.GOOS, Arch: runtime.GOARCH, Stats: stats}, Servers: states, Playit: &p}
+	return Wire{Type: "heartbeat", Node: &Node{ID: h.cfg.AgentID, Name: host, OS: runtime.GOOS, Arch: runtime.GOARCH, Stats: stats, SteamUser: steamUser(h)}, Servers: states, Playit: &p}
 }
 func (h *Host) metrics(ctx context.Context) {
 	tick := time.NewTicker(3 * time.Second)
@@ -125,6 +125,10 @@ func (h *Host) handle(cmd Command) (any, error) {
 		return map[string]bool{"ok": true}, h.playit.start()
 	case "playit.stop":
 		return map[string]bool{"ok": true}, h.playit.stop()
+	case "steam.login":
+		return steamLogin(h, cmd.Args["username"], cmd.Args["password"], cmd.Args["code"])
+	case "steam.logout":
+		return map[string]bool{"ok": true}, os.Remove(filepath.Join(h.dir, "steam-user.txt"))
 	}
 	id := cmd.ServerID
 	if cmd.Server != nil {

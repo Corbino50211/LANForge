@@ -298,7 +298,12 @@ func TestManagedHelper(t *testing.T) {
 }
 func helperManaged(t *testing.T) *Managed {
 	t.Helper()
-	root := t.TempDir()
+	// Not t.TempDir: Windows may still lock the copied helper.exe briefly after exit, failing cleanup.
+	root, e := os.MkdirTemp("", "lanforge-helper-")
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { os.RemoveAll(root) })
 	os.MkdirAll(filepath.Join(root, "game"), 0700)
 	exe, _ := os.Executable()
 	r, e := os.Open(exe)

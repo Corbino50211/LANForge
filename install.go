@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func installGame(h *Host, m *Managed) error {
@@ -29,7 +31,7 @@ func installGame(h *Host, m *Managed) error {
 			return e
 		}
 	case "valheim":
-		if e := steamInstall(h, m, "896660", filepath.Join(m.root, "game"), "", ""); e != nil {
+		if e := steamInstall(h, m, "896660", filepath.Join(m.root, "game"), "", "", false); e != nil {
 			return e
 		}
 	case "amp":
@@ -280,14 +282,14 @@ func copyTree(src, dst string) error {
 		return ce
 	})
 }
-func steamInstall(h *Host, m *Managed, appid, dest, branch, platform string) error {
+func ensureSteamCMD(h *Host, log func(string)) (string, string, error) {
 	dir := filepath.Join(h.dir, "tools", "steamcmd")
 	exe := filepath.Join(dir, "steamcmd.sh")
 	if runtime.GOOS == "windows" {
 		exe = filepath.Join(dir, "steamcmd.exe")
 	}
 	if _, e := os.Stat(exe); e != nil {
-		m.log("Installing Valve SteamCMD")
+		log("Installing Valve SteamCMD")
 		u := "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz"
 		name := "steamcmd.tar.gz"
 		if runtime.GOOS == "windows" {
@@ -295,17 +297,79 @@ func steamInstall(h *Host, m *Managed, appid, dest, branch, platform string) err
 			name = "steamcmd.zip"
 		}
 		archive := filepath.Join(h.dir, "downloads", name)
-		if e = download(u, archive, "", m.log); e != nil {
-			return e
+		if e = download(u, archive, "", log); e != nil {
+			return "", "", e
 		}
 		os.MkdirAll(dir, 0700)
 		if e = extract(archive, dir); e != nil {
-			return e
+			return "", "", e
 		}
 		os.Chmod(exe, 0755)
 	}
+	return dir, exe, nil
+}
+
+// steamUser is the account signed in with steam.login; SteamCMD caches its login token.
+func steamUser(h *Host) string {
+	b, _ := os.ReadFile(filepath.Join(h.dir, "steam-user.txt"))
+	return strings.TrimSpace(string(b))
+}
+
+// steamLogin signs SteamCMD in once so later installs can use the cached login without the password.
+func steamLogin(h *Host, user, pass, code string) (any, error) {
+	if user == "" || strings.ContainsAny(user, " \t\r\n") {
+		return nil, errors.New("enter your Steam username")
+	}
+	// SteamCMD can't run twice at once; installs hold installMu for minutes.
+	if !h.installMu.TryLock() {
+		return nil, errors.New("wait for the current game installation to finish, then sign in")
+	}
+	defer h.installMu.Unlock()
+	dir, exe, e := ensureSteamCMD(h, func(string) {})
+	if e != nil {
+		return nil, e
+	}
+	args := []string{"+login", user, pass, "+quit"}
+	if code != "" {
+		args = append([]string{"+set_steam_guard_code", code}, args...)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, exe, args...)
+	cmd.Dir = dir
+	prepareProcess(cmd)
+	out, _ := cmd.CombinedOutput()
+	text := string(out)
+	if !strings.Contains(text, "Logged in OK") && !strings.Contains(text, "Waiting for user info...OK") {
+		switch {
+		case ctx.Err() != nil:
+			return nil, errors.New("Steam sign-in timed out. Approve the sign-in in the Steam mobile app, or enter the Steam Guard code from your app or email, then try again")
+		case strings.Contains(text, "Two-factor") || strings.Contains(text, "Steam Guard") || strings.Contains(text, "TwoFactor") || strings.Contains(text, "AccountLogonDenied"):
+			return nil, errors.New("Steam Guard code required or wrong. Enter the current code from your Steam app or email")
+		case strings.Contains(text, "Invalid Password") || strings.Contains(text, "InvalidPassword"):
+			return nil, errors.New("Steam rejected the username or password")
+		}
+		lines := strings.Split(strings.TrimSpace(text), "\n")
+		return nil, errors.New("Steam sign-in failed: " + strings.TrimSpace(lines[len(lines)-1]))
+	}
+	if e = atomicWrite(filepath.Join(h.dir, "steam-user.txt"), []byte(user), 0600); e != nil {
+		return nil, e
+	}
+	return map[string]string{"user": user}, nil
+}
+func steamInstall(h *Host, m *Managed, appid, dest, branch, platform string, login bool) error {
+	dir, exe, e := ensureSteamCMD(h, m.log)
+	if e != nil {
+		return e
+	}
+	account := "anonymous"
+	if login {
+		if account = steamUser(h); account == "" {
+			return errors.New("this game needs a Steam account that owns it. Open Computers and choose Steam sign-in on this computer, then install again")
+		}
+	}
 	os.MkdirAll(dest, 0700)
-	args := []string{"+force_install_dir", dest, "+login", "anonymous", "+app_update", appid}
+	args := []string{"+force_install_dir", dest, "+login", account, "+app_update", appid}
 	if platform != "" {
 		args = append([]string{"+@sSteamCmdForcePlatformType", platform}, args...)
 	}
@@ -325,6 +389,9 @@ func steamInstall(h *Host, m *Managed, appid, dest, branch, platform string) err
 	cmd.Stdout = f
 	cmd.Stderr = f
 	if e = cmd.Run(); e != nil {
+		if login {
+			return fmt.Errorf("SteamCMD failed: %w. Make sure the signed-in Steam account owns this game; if the sign-in expired, sign in to Steam again on the Computers page", e)
+		}
 		return fmt.Errorf("SteamCMD failed: %w. On Linux, install the distribution's 32-bit C/C++ runtime (Ubuntu: sudo apt install lib32gcc-s1 lib32stdc++6). Check the console for the exact error", e)
 	}
 	return nil

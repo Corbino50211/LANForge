@@ -22,10 +22,23 @@ func stageApplies(st map[string]any, platform string) bool {
 	arch := strings.ToLower(str(st["UpdateSourceArch"]))
 	return (plat == "" || plat == "all" || plat == platform) && (arch == "" || arch == "x86_64")
 }
-func genericCompatibility(t Template, platform string) string {
-	if !asBool(t.KVP["App.SteamUpdateAnonymousLogin"]) {
-		return "Requires an account-specific installer or Steam sign-in"
+
+// configType falls back to the file extension when a template omits ConfigType.
+func configType(meta map[string]any) string {
+	if t := strings.ToLower(str(meta["ConfigType"])); t != "" {
+		return t
 	}
+	switch strings.ToLower(filepath.Ext(str(meta["ConfigFile"]))) {
+	case ".ini":
+		return "ini"
+	case ".json":
+		return "json"
+	case ".xml":
+		return "xml"
+	}
+	return "kvp"
+}
+func genericCompatibility(t Template, platform string) string {
 	for _, v := range strings.Split(t.KVP["App.Compatibility"], ",") {
 		if v = strings.TrimSpace(v); v != "" && v != "None" && !strings.HasSuffix(v, "BufferedConsole") {
 			return "Requires compatibility runtime: " + v
@@ -55,12 +68,12 @@ func genericCompatibility(t Template, platform string) string {
 		if plat := strings.ToLower(str(meta["ConfigFilePlatform"])); plat != "" && plat != "all" && plat != platform {
 			continue
 		}
-		typ := strings.ToLower(str(meta["ConfigType"]))
+		typ := configType(meta)
 		if typ != "ini" && typ != "kvp" && typ != "json" && typ != "template" {
 			return "Requires " + typ + " configuration mapping"
 		}
 		format := str(meta["ConfigFormat"])
-		if format != "" && (!strings.Contains(format, "{0}") || !strings.Contains(format, "{1}") || (typ == "ini" && !strings.Contains(format, "="))) {
+		if format != "" && format != "{0}{1}" && (!strings.Contains(format, "{0}") || !strings.Contains(format, "{1}") || (typ == "ini" && !strings.Contains(format, "="))) {
 			return "Requires a custom configuration format"
 		}
 		if asBool(meta["ConfigFileIsVariable"]) {
@@ -89,7 +102,7 @@ func compilePlan(t Template, s Server, platform string) (*Plan, error) {
 	if t.KVP["App.BaseDirectory"] == "" {
 		base = root
 	}
-	vars := map[string]string{"$ApplicationIPBinding": "0.0.0.0", "$MaxUsers": t.KVP["App.MaxUsers"], "$RemoteAdminPassword": token(12), "$FullRootDir": "$ROOT/" + root + "/", "$FullBaseDir": "$ROOT/" + base + "/", "$RootDir": root + "/", "$BaseDirectory": base + "/", "$FullInstanceDir": "$ROOT/game/"}
+	vars := map[string]string{"$ApplicationIPBinding": "0.0.0.0", "$MaxUsers": t.KVP["App.MaxUsers"], "$RemoteAdminPassword": token(12), "$FullRootDir": "$ROOT/" + root + "/", "$FullBaseDir": "$ROOT/" + base + "/", "$RootDir": root + "/", "$BaseDirectory": base + "/", "$FullInstanceDir": "$ROOT/game/", "$ExternalIP": "0.0.0.0"}
 	if vars["$MaxUsers"] == "" {
 		vars["$MaxUsers"] = "20"
 	}
@@ -120,6 +133,10 @@ func compilePlan(t Template, s Server, platform string) (*Plan, error) {
 					return x
 				}
 				x, ok := vars[k]
+				if !ok {
+					// Some templates drop the leading $ on built-ins, e.g. {{FullBaseDir}}.
+					x, ok = vars["$"+k]
+				}
 				if !ok {
 					missing = append(missing, k)
 				}
@@ -254,6 +271,7 @@ func compilePlan(t Template, s Server, platform string) (*Plan, error) {
 					return nil, errors.New("invalid Steam application ID")
 				}
 				step.Type, step.AppID, step.Args = "steam", step.Data, ""
+				step.Login = !asBool(t.KVP["App.SteamUpdateAnonymousLogin"])
 				if target == "" {
 					target = "$ROOT/" + root + "/" + step.AppID
 				}
@@ -309,7 +327,7 @@ func compilePlan(t Template, s Server, platform string) (*Plan, error) {
 		if e != nil {
 			return nil, e
 		}
-		typ := strings.ToLower(str(meta["ConfigType"]))
+		typ := configType(meta)
 		cfg := ConfigSpec{Path: path, Format: typ, Pattern: str(meta["ConfigFormat"]), Values: map[string]string{}}
 		if typ == "template" {
 			tpl := str(meta["ConfigFileTemplate"])
@@ -329,9 +347,16 @@ func compilePlan(t Template, s Server, platform string) (*Plan, error) {
 			}
 		}
 		put := func(key, field string, section string) error {
+			if key == "" && (typ == "ini" || cfg.Pattern != "{0}{1}") {
+				return nil // free-form extra lines; the defaults are empty
+			}
+			if cfg.Pattern == "{0}{1}" && strings.HasSuffix(key, "=") {
+				key, cfg.Pattern = strings.TrimSuffix(key, "="), ""
+			}
 			val, ok := vars[field]
 			if !ok {
-				return fmt.Errorf("unsupported config variable %s", field)
+				// AMP mappings may hold a constant instead of a field name, e.g. "True".
+				val = field
 			}
 			val, e = expand(val)
 			if e != nil {
@@ -343,6 +368,11 @@ func compilePlan(t Template, s Server, platform string) (*Plan, error) {
 				if i := strings.LastIndex(key, "."); i > 0 {
 					key = key[:i] + "\x1f" + key[i+1:]
 				}
+			}
+			if key == "" {
+				// The whole file is the value, e.g. a token file.
+				cfg.Format, cfg.Values = "raw", map[string]string{"": val}
+				return nil
 			}
 			cfg.Values[key] = val
 			return nil
@@ -417,6 +447,9 @@ func applyAMPConfigs(m *Managed) error {
 			e = mergeINI(path, values, cfg.Pattern)
 		case cfg.Format == "json":
 			e = mergeJSON(path, values)
+		case cfg.Format == "raw":
+			os.MkdirAll(filepath.Dir(path), 0700)
+			e = atomicWrite(path, []byte(values[""]), 0600)
 		default:
 			e = errors.New("unsupported config format")
 		}

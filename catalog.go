@@ -31,6 +31,7 @@ type Catalog struct {
 }
 
 var includeRE = regexp.MustCompile(`(?i)^@includejson\[([^\]]+)\]$`)
+var trailingCommaRE = regexp.MustCompile(`,(\s*[}\]])`)
 var variableRE = regexp.MustCompile(`\{\{([^{}]+)\}\}`)
 
 func parseKVP(b []byte) map[string]string {
@@ -41,7 +42,8 @@ func parseKVP(b []byte) map[string]string {
 			continue
 		}
 		if k, v, ok := strings.Cut(l, "="); ok {
-			m[strings.TrimSpace(k)] = v
+			k = strings.TrimSpace(k)
+			m[k] = strings.TrimPrefix(v, k+"=") // tolerate "Key=Key=value" typos
 		}
 	}
 	return m
@@ -86,7 +88,12 @@ func (c *Catalog) load() error {
 		if e != nil {
 			return nil, e
 		}
-		return os.ReadFile(p)
+		b, e := os.ReadFile(p)
+		if strings.HasSuffix(name, ".json") {
+			// Some community templates have trailing commas, which encoding/json rejects.
+			b = trailingCommaRE.ReplaceAll(b, []byte("$1"))
+		}
+		return b, e
 	}
 	for _, f := range files {
 		if !strings.HasSuffix(f.Name(), ".kvp") {
@@ -181,6 +188,9 @@ func (c *Catalog) load() error {
 		if len(t.OS) > 0 {
 			t.Status = "experimental"
 			t.Reason = "AMP community installer. Not game-launch verified."
+			if !asBool(kv["App.SteamUpdateAnonymousLogin"]) && strings.Contains(kv["App.UpdateSources"]+fmt.Sprint(t.Updates), "SteamCMD") {
+				t.Reason = "Needs Steam sign-in (Computers page) with an account that owns the game. " + t.Reason
+			}
 			if len(reasons) > 0 {
 				t.Reason += " " + strings.Join(reasons, " · ")
 			}
