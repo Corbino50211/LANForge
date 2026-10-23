@@ -12,7 +12,7 @@ type Runtime={id:string,state:string,message:string,pid?:number,logs:string[],cp
 type Tunnel={id:string,name:string,local_ip:string,local_port:number,proto:string,assigned_domain:string,port:{from:number,to:number},disabled:boolean};
 type Playit={linked:boolean;state:string,message:string,claimUrl?:string,tunnels:Tunnel[]};
 type State={nodes:NodeInfo[],servers:ServerInfo[],runtime:Record<string,Runtime>,playit:Record<string,Playit>,notices:{message:string,time:string,error:boolean}[],version:string};
-const empty:State={nodes:[],servers:[],runtime:{},playit:{},notices:[],version:'0.3.2'};
+const empty:State={nodes:[],servers:[],runtime:{},playit:{},notices:[],version:'0.3.3'};
 async function api<T=any>(path:string,body?:unknown):Promise<T>{const r=await fetch('/api'+path,{method:body===undefined?'GET':'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-LanForge':'1'},body:body===undefined?undefined:JSON.stringify(body)});const d=await r.json();if(!r.ok){if(r.status===401&&path!=='/login')window.dispatchEvent(new Event('signed-out'));throw Error(d.error||`Request failed (${r.status})`)}return d}
 const bytes=(n=0)=>n>=1073741824?(n/1073741824).toFixed(1)+' GB':n>=1048576?(n/1048576).toFixed(0)+' MB':(n/1024).toFixed(0)+' KB';
 const pretty=(s:string)=>s.replaceAll('_',' ').replace(/^./,c=>c.toUpperCase());
@@ -30,7 +30,7 @@ function Login({onLogin}:{onLogin:()=>void}){const [password,set]=useState(''),[
 
 function App(){const [authed,setAuthed]=useState<boolean|null>(null),[data,setData]=useState<State>(empty),[templates,setTemplates]=useState<Template[]>([]),[page,setPage]=useState('servers'),[selected,setSelected]=useState<string|null>(null),[create,setCreate]=useState<Template|null|false>(false),[pair,setPair]=useState(false),[toast,setToast]=useState(''),[err,setErr]=useState(''),[search,setSearch]=useState(''),[mobile,setMobile]=useState(false);
  const notify=(s:string)=>{setToast(s);setTimeout(()=>setToast(''),5000)};
- const refresh=async()=>{try{setData(await api<State>('/state'));setErr('')}catch(e){setErr((e as Error).message)}};
+ const refresh=async()=>{try{const st=await api<State>('/state');if(st.version&&st.version!==empty.version){let seen='';try{seen=sessionStorage.getItem('lanforge-reloaded')||''}catch{}if(seen!==st.version){try{sessionStorage.setItem('lanforge-reloaded',st.version)}catch{}location.reload();return}}setData(st);setErr('')}catch(e){setErr((e as Error).message)}};
  useEffect(()=>{api('/session').then(s=>setAuthed(s.authenticated)).catch(()=>setAuthed(false));const f=()=>setAuthed(false);window.addEventListener('signed-out',f);return()=>window.removeEventListener('signed-out',f)},[]);
  useEffect(()=>{if(!authed)return;refresh();loadTemplates(setTemplates).catch(e=>setErr(e.message));const i=setInterval(refresh,3000);return()=>clearInterval(i)},[authed]);
  const action=async(s:ServerInfo,act:string,args:Record<string,string>={})=>{try{const r=await api(`/servers/${s.id}/${act}`,args);notify(r.message||`${pretty(act)} request completed`);await refresh();return r}catch(e){notify((e as Error).message);throw e}};
