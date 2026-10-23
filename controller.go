@@ -128,7 +128,7 @@ func (c *Controller) auth(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.cloudflare.steamstatic.com https://cdn.modrinth.com; connect-src 'self' https://api.modrinth.com; frame-ancestors 'none'; base-uri 'self'")
 		if !strings.HasPrefix(r.URL.Path, "/api/") {
 			next.ServeHTTP(w, r)
 			return
@@ -310,6 +310,15 @@ func (c *Controller) routes() http.Handler {
 			return
 		}
 		jsonReply(w, 200, res)
+	})
+	m.HandleFunc("GET /api/steam-icons", func(w http.ResponseWriter, r *http.Request) {
+		ids := []string{}
+		for _, t := range c.catalog.list() {
+			if t.SteamApp != "" {
+				ids = append(ids, t.SteamApp)
+			}
+		}
+		jsonReply(w, 200, steamIcons(c.data, ids))
 	})
 	m.HandleFunc("GET /api/update", func(w http.ResponseWriter, r *http.Request) {
 		latest, e := latestRelease()

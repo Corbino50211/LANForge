@@ -40,6 +40,13 @@ func TestLiveMinecraftMods(t *testing.T) {
 			t.Fatalf("expected ledger plus its 2 required dependencies, got %d", n)
 		}
 	})
+	t.Run("wizard mods", func(t *testing.T) {
+		m := liveMinecraft(t, map[string]string{"loader": "fabric", "version": "1.21.4", "mods": "lithium,not-a-real-mod-xyz"}, "")
+		r, _ := modsList(m)
+		if n := len(r.(map[string]any)["mods"].([]modRecord)); n != 1 {
+			t.Fatalf("expected lithium only, got %d", n)
+		}
+	})
 	t.Run("modpack", func(t *testing.T) {
 		liveMinecraft(t, map[string]string{"modpack": liveEnv("LANFORGE_LIVE_MODPACK", "vanilla-perfected")}, "")
 	})
@@ -143,5 +150,15 @@ func TestLiveApps(t *testing.T) {
 			}
 			t.Fatalf("app never answered\n%s", tail())
 		})
+	}
+}
+
+func TestLiveSteamIcons(t *testing.T) {
+	if os.Getenv("LANFORGE_LIVE_TEST") != "1" {
+		t.Skip("set LANFORGE_LIVE_TEST=1")
+	}
+	icons := steamIcons(t.TempDir(), []string{"4000", "892970", "1"})
+	if !strings.HasPrefix(icons["4000"], "https://cdn.cloudflare.steamstatic.com/") || icons["1"] != "" {
+		t.Fatal(icons)
 	}
 }

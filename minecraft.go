@@ -126,6 +126,12 @@ func installMinecraft(m *Managed) error {
 	m.spec.Settings["launchArgs"] = string(launch)
 	m.spec.Plan = &Plan{Engine: "minecraft", Executable: java, WorkDir: "game", Stop: "stop"}
 	m.mu.Unlock()
+	// Mods picked in the create wizard. One that doesn't fit this version shouldn't fail the whole install.
+	for _, id := range strings.FieldsFunc(s.Settings["mods"], func(r rune) bool { return r == ',' || r == ' ' }) {
+		if _, e := installMods(m, id); e != nil {
+			m.log("Skipped a mod: " + e.Error())
+		}
+	}
 	return nil
 }
 

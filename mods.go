@@ -101,8 +101,16 @@ func modsInstall(m *Managed, project string) (any, error) {
 	if m.snapshot().PID != 0 {
 		return nil, errors.New("stop the server before changing mods")
 	}
-	s := m.specCopy()
-	folder, _, loaders, mc, e := modTarget(s)
+	installed, e := installMods(m, project)
+	if e != nil {
+		return nil, e
+	}
+	return map[string]string{"message": "Installed " + strings.Join(installed, ", ") + ". Start the server to load it."}, nil
+}
+
+// installMods installs a Modrinth project and its required dependencies; callers hold m.op.
+func installMods(m *Managed, project string) ([]string, error) {
+	folder, _, loaders, mc, e := modTarget(m.specCopy())
 	if e != nil {
 		return nil, e
 	}
@@ -162,10 +170,7 @@ func modsInstall(m *Managed, project string) (any, error) {
 	}
 	e = install(project, 0)
 	writeJSON(filepath.Join(game, ".lanforge-mods.json"), records)
-	if e != nil {
-		return nil, e
-	}
-	return map[string]string{"message": "Installed " + strings.Join(installed, ", ") + ". Start the server to load it."}, nil
+	return installed, e
 }
 
 func modsList(m *Managed) (any, error) {

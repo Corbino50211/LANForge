@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-const Version = "0.3.1"
+const Version = "0.3.2"
 
 type Config struct {
 	Role        string `json:"role"`
@@ -43,6 +43,7 @@ type Template struct {
 	Revision    string            `json:"revision"`
 	Ports       []Port            `json:"ports"`
 	Fields      []Field           `json:"fields"`
+	SteamApp    string            `json:"steamApp,omitempty"`
 	KVP         map[string]string `json:"-"`
 	Updates     []map[string]any  `json:"-"`
 	PreStart    []map[string]any  `json:"-"`

@@ -147,6 +147,16 @@ func TestCatalogAndCompile(t *testing.T) {
 	if p, e := compilePlan(g, s, "windows"); e != nil || p.Configs[0].Template != "game/garrysmod/AMP_server.cfg" {
 		t.Fatal(p, e)
 	}
+	steam := 0
+	for _, g := range all {
+		if g.SteamApp != "" {
+			steam++
+		}
+	}
+	if g.SteamApp != "4000" || steam < 150 {
+		t.Fatal("steam apps:", g.SteamApp, steam)
+	}
+	t.Logf("%d templates have a Steam app", steam)
 	if supported < 5 {
 		t.Fatal("generic template compatibility regressed")
 	}

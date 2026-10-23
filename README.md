@@ -1,4 +1,4 @@
-# LANForge 0.3.1 — local hosting preview
+# LANForge 0.3.2 — local hosting preview
 
 A local controller and host application for Windows and Linux. Run the controller on your main PC and pair your laptops. The same executable runs either role. The controller also hosts games itself.
 
@@ -36,7 +36,8 @@ DNS does not replace forwarding or bypass CGNAT. Other DNS providers, IPv6, and 
 - Text file editing and uploads, stopped-server backups and staged restore with the previous game directory retained.
 - Official Minecraft Java, Terraria and Valheim installers. Java runtimes install privately beside each Minecraft server.
 - Minecraft loaders: Vanilla, Paper, Purpur, Fabric, Quilt, Forge and NeoForge. Pick one in the wizard or in Settings, then use **Install / repair**. Paper and Purpur run Spigot/Bukkit plugins.
-- A **Mods** (or **Plugins**) tab that searches Modrinth, installs only compatible versions and pulls in required dependencies. Set **Modrinth modpack** to a modpack link or slug to install a whole pack. No API keys are needed; CurseForge is not supported.
+- Steam game icons in the library, from Steam's store.
+- A Modrinth browser in the create wizard for mods, plugins and modpacks, plus a **Mods** (or **Plugins**) tab that searches Modrinth, installs only compatible versions and pulls in required dependencies. Set **Modrinth modpack** to a modpack link or slug to install a whole pack. No API keys are needed; CurseForge is not supported.
 - **Custom app** servers for Node.js, Python, Go, Java, Bun and Deno. Code comes from a public GitHub repository, an uploaded zip (click it in Files to extract) or files you write in Files. LANForge downloads the runtime, installs dependencies (`npm install`, `pip install -r requirements.txt`, `go build`), sets `PORT` and runs the start command.
 - AMP catalog browsing and refresh from CubeCoders' public MIT-licensed repository. The bundled snapshot contains 244 upstream templates plus LANForge's Minecraft entry.
 - A generic AMP adapter covering SteamCMD, FetchURL, FetchURLFromJQ, GithubRelease, ExtractArchive, CreateDirectory/File, CopyFilePath, Executable and pre-start stages, plus INI/KVP/JSON/template configuration with AMP line formats. In the bundled snapshot 133 templates install on Windows and 100 on Linux. They are experimental and have not been tested in-game. Templates that need a Steam account login, XML configuration or git are still marked unavailable.
